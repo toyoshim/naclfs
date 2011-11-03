@@ -1,0 +1,16 @@
+#!/bin/sh
+
+function _wrap() {
+  /bin/echo -n "-Xlinker --wrap -Xlinker $1 "
+}
+
+function libs() {
+  _wrap "open"
+  _wrap "read"
+  _wrap "write"
+  _wrap "lseek"
+  _wrap "close"
+  echo
+}
+
+libs
