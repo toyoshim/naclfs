@@ -90,12 +90,28 @@ class NaClFsTestsInstance: public pp::Instance {
     NaClFsTestsInstance* self = static_cast<NaClFsTestsInstance*>(param);
     self->naclfs_->Log("thread start\n");
     self->BasicTest();
+    self->naclfs_->Log("say hello to out.txt\n");
+    FILE* out = fopen("out.txt", "a+");
+    fprintf(out, "hello\n");
+    fflush(out);
+    fclose(out);
+    self->naclfs_->Log("dump out.txt\n");
+    FILE* io = fopen("out.txt", "r+");
+    size_t read_size;
+    do {
+      uint8_t buffer[512];
+      read_size = fread(buffer, 1, 512, io);
+      fprintf(stderr, "fread return %d\n", read_size);
+      write(STDOUT_FILENO, buffer, read_size);
+    } while (read_size == 512);
     self->naclfs_->Log("start echo\n");
     for (;;) {
       uint8_t buffer[1];
       if (read(STDIN_FILENO, buffer, 1) != 1)
         break;
       write(STDOUT_FILENO, buffer, 1);
+      fwrite(buffer, 1, 1, io);
+      fflush(io);
     }
     self->naclfs_->Log("thread end by EOF\n");
     return NULL;

@@ -29,49 +29,53 @@
 // DAMAGE.
 //
 
-#ifndef NACLFS_NACLFS_H_
-#define NACLFS_NACLFS_H_
+#ifndef NACLFS_HTML5_FILESYSTEM_H_
+#define NACLFS_HTML5_FILESYSTEM_H_
 #pragma once
 
 #include <pthread.h>
-#include <string>
+
+#include "filesystem.h"
+#include "ppapi/c/pp_file_info.h"
 
 namespace pp {
 
-class Instance;
-class Core;
+class FileIO;
+class FileRef;
+class FileSystem;
 class Var;
 
-}  // namespace naclfs
+};  // namespace pp
 
 namespace naclfs {
 
-class FileSystem;
+class NaClFs;
 
-class NaClFs {
+class Html5FileSystem : public FileSystem::Delegate {
  public:
-  NaClFs(pp::Instance* instance);
+  Html5FileSystem(NaClFs* naclfs);
+  virtual ~Html5FileSystem();
 
-  static void Log(const char* message);
-
-  static FileSystem* GetFileSystem() { return single_instance_->filesystem_; };
-  static pp::Instance* GetInstance() { return single_instance_->instance_; };
-
-  static void PostMessage(const pp::Var& message);
-  bool HandleMessage(const pp::Var& message);
+  virtual int OpenCall(Arguments* arguments, const char* path, int oflag, ...);
+  virtual ssize_t ReadCall(Arguments* arguments, void* buf, size_t nbytes);
+  virtual ssize_t WriteCall(
+      Arguments* arguments, const void* buf, size_t nbytes);
+  virtual off_t LseekCall(Arguments* arguments, off_t offset, int whence);
+  virtual int CloseCall(Arguments* arguments);
+  static bool HandleMessage(const pp::Var& message);
 
  private:
-  static void PostMessageFromMainThread(void* param, int32_t result);
-  void Lock();
-  void Unlock();
+  static pp::FileSystem* filesystem_;
 
-  static NaClFs* single_instance_;
-  FileSystem* filesystem_;
-  pp::Core* core_;
-  pp::Instance* instance_;
-  pthread_mutex_t mutex_;
+  pp::FileRef* file_ref_;
+  pp::FileIO* file_io_;
+  PP_FileInfo file_info_;
+  NaClFs* naclfs_;
+  bool waiting_;
+  bool querying_;
+  off_t offset_;
 };
 
 }  // namespace naclfs
 
-#endif  // NACLFS_NACLFS_H_
+#endif  // NACLFS_HTML5_FILESYSTEM_H_

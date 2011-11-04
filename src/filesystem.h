@@ -35,7 +35,10 @@
 
 #include <pthread.h>
 #include <stdio.h>
+#include <string>
 #include <vector>
+
+#include "ppapi/cpp/completion_callback.h"
 
 namespace pp {
 
@@ -50,53 +53,80 @@ class NaClFs;
 
 class FileSystem {
  public:
-  enum Function {
-    OPEN,
-    READ,
-    WRITE,
-    LSEEK,
-    CLOSE,
-  };
+  class Delegate {
+   protected:
+    enum Function {
+      OPEN,
+      READ,
+      WRITE,
+      LSEEK,
+      CLOSE,
+    };
+    typedef struct _Arguments {
+      enum Function function;
+      Delegate* delegate;
+      bool chaining;
+      union {
+        struct {
+          const char* path;
+          int oflag;
+        } open;
+        struct {
+          void* buf;
+          size_t nbytes;
+        } read;
+        struct {
+          const void* buf;
+          size_t nbytes;
+        } write;
+        struct {
+          off_t offset;
+          int whence;
+        } lseek;
+      } u;
+      union {
+        int32_t callback;
+        int open;
+        ssize_t read;
+        ssize_t write;
+        off_t lseek;
+        int close;
+      } result;
+    } Arguments;
 
- class Delegate {
    public:
-    virtual int Open(const char* path, int oflag, ...) = 0;
-    virtual ssize_t Read(void* buf, size_t nbytes) = 0;
-    virtual ssize_t Write(const void* buf, size_t nbytes) = 0;
-    virtual off_t Lseek(off_t offset, int whence) = 0;
-    virtual int Close() = 0;
-  };
+    Delegate();
+    virtual int Open(const char* path, int oflag, ...);
+    virtual ssize_t Read(void* buf, size_t nbytes);
+    virtual ssize_t Write(const void* buf, size_t nbytes);
+    virtual off_t Lseek(off_t offset, int whence);
+    virtual int Close();
 
-  typedef struct _Arguments {
-    enum Function function;
-    Delegate* delegate;
-    FileSystem* self;
-    union {
-      struct {
-        const char* path;
-        int oflag;
-      } open;
-      struct {
-        void* buf;
-        size_t nbytes;
-      } read;
-      struct {
-        const void* buf;
-        size_t nbytes;
-      } write;
-      struct {
-        off_t offset;
-        int whence;
-      } lseek;
-    } u;
-    union {
-      int open;
-      ssize_t read;
-      ssize_t write;
-      off_t lseek;
-      int close;
-    } result;
-  } Arguments;
+    virtual int OpenCall(
+        Arguments* arguments, const char* path, int oflag, ...) { return 0; };
+    virtual ssize_t ReadCall(
+        Arguments* arguments, void* buf, size_t nbytes) { return 0; };
+    virtual ssize_t WriteCall(
+        Arguments* arguments, const void* buf, size_t nbytes) { return 0; };
+    virtual off_t LseekCall(
+        Arguments* arguments, off_t offset, int whence) { return 0; };
+    virtual int CloseCall(Arguments* arguments) { return 0; };
+
+   protected:
+    pp::CompletionCallback callback_;
+
+   private:
+    void Lock();
+    void Unlock();
+
+    void Call(Arguments& arguments);
+    static void Proxy(void* param, int32_t result);
+    static void Switch(Arguments* arguments);
+
+    static bool initialized_;
+    static pthread_mutex_t mutex_;
+    static pp::Core* core_;
+  };
 
   FileSystem(NaClFs* naclfs);
   ~FileSystem();
@@ -115,15 +145,9 @@ class FileSystem {
   Delegate* GetDelegate(int fildes);
   void DeleteDescriptor(int fildes);
 
-  void Call(Arguments& arguments);
-  void SwitchViaProxy(Arguments& arguments);
-  static void Proxy(void* param, int32_t result);
-  static void Switch(Arguments* arguments);
-
   std::vector<Delegate*> descriptors_;
-  pthread_mutex_t call_mutex_;
-  pthread_mutex_t proxy_sync_mutex_;
-  pthread_mutex_t block_mutex_;
+  std::string cwd_;
+  pthread_mutex_t mutex_;
   pp::Core* core_;
   NaClFs* naclfs_;
 };
