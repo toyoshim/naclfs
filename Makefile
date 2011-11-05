@@ -30,12 +30,10 @@
 #
 CC	= i686-nacl-g++
 CFLAGS	= -O9 -g -Wall -m32 -pthread -Isrc
-LIBS	= -lppapi -lppapi_cpp `bin/naclfs-config --libs`
+LIBS	= -lppapi -lppapi_cpp `./bin/naclfs-config --libs`
 LDFLAGS	=
 TARGET	= html/naclfs_tests_x86_32.nexe
-OBJS	= src/wrap.o src/naclfs.o src/filesystem.o \
-	  src/port_filesystem.o src/html5_filesystem.o \
-	  test/naclfs_tests.o
+OBJS	= $(shell ./bin/naclfs-config --objs .) test/naclfs_tests.o
 
 all: $(TARGET)
 

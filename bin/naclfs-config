@@ -9,8 +9,19 @@ function libs() {
   _wrap "read"
   _wrap "write"
   _wrap "lseek"
+  _wrap "fcntl"
   _wrap "close"
   echo
 }
 
-libs
+function objs() {
+  /bin/echo -n "$1/src/wrap.o $1/src/naclfs.o $1/src/filesystem.o "
+  /bin/echo -n "$1/src/port_filesystem.o $1/src/html5_filesystem.o "
+  echo
+}
+
+case $1 in
+  --libs) libs;;
+  --objs) objs $2;;
+esac
+

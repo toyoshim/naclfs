@@ -43,6 +43,7 @@ int __wrap_open(const char* path, int oflag, ...);
 ssize_t __wrap_read(int fildes, void* buf, size_t nbytes);
 ssize_t __wrap_write(int fildes, const void* buf, size_t nbytes);
 off_t __wrap_lseek(int fildes, off_t offset, int whence);
+int __wrap_fcntl(int fildes, int cmd, ...);
 int __wrap_close(int fildes);
 
 # if defined(__cplusplus)

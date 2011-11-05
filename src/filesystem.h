@@ -60,6 +60,7 @@ class FileSystem {
       READ,
       WRITE,
       LSEEK,
+      FCNTL,
       CLOSE,
     };
     typedef struct _Arguments {
@@ -83,6 +84,10 @@ class FileSystem {
           off_t offset;
           int whence;
         } lseek;
+        struct {
+          int cmd;
+          int arg1;
+        } fcntl;
       } u;
       union {
         int32_t callback;
@@ -90,6 +95,7 @@ class FileSystem {
         ssize_t read;
         ssize_t write;
         off_t lseek;
+        int fcntl;
         int close;
       } result;
     } Arguments;
@@ -100,6 +106,7 @@ class FileSystem {
     virtual ssize_t Read(void* buf, size_t nbytes);
     virtual ssize_t Write(const void* buf, size_t nbytes);
     virtual off_t Lseek(off_t offset, int whence);
+    virtual int Fcntl(int cmd, ...);
     virtual int Close();
 
     virtual int OpenCall(
@@ -110,6 +117,7 @@ class FileSystem {
         Arguments* arguments, const void* buf, size_t nbytes) { return 0; };
     virtual off_t LseekCall(
         Arguments* arguments, off_t offset, int whence) { return 0; };
+    virtual int FcntlCall(Arguments* arguments, int cmd, ...) { return 0; };
     virtual int CloseCall(Arguments* arguments) { return 0; };
 
    protected:
@@ -135,6 +143,7 @@ class FileSystem {
   ssize_t Read(int fildes, void* buf, size_t nbytes);
   ssize_t Write(int fildes, const void* buf, size_t nbytes);
   off_t Lseek(int fildes, off_t offset, int whence);
+  int Fcntl(int fildes, int cmd, ...);
   int Close(int fildes);
 
   static bool HandleMessage(const pp::Var& message);

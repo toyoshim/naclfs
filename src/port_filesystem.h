@@ -55,6 +55,7 @@ class PortFileSystem : public FileSystem::Delegate {
   virtual ssize_t Read(void* buf, size_t nbytes);
   virtual ssize_t Write(const void* buf, size_t nbytes);
   virtual off_t Lseek(off_t offset, int whence);
+  virtual int Fcntl(int cmd, ...);
   virtual int Close();
   static bool HandleMessage(const pp::Var& message);
 
@@ -64,6 +65,7 @@ class PortFileSystem : public FileSystem::Delegate {
   NaClFs* naclfs_;
   bool readable_;
   bool writable_;
+  bool blocking_;
   int id_;
 };
 

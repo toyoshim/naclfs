@@ -61,6 +61,7 @@ class Html5FileSystem : public FileSystem::Delegate {
   virtual ssize_t WriteCall(
       Arguments* arguments, const void* buf, size_t nbytes);
   virtual off_t LseekCall(Arguments* arguments, off_t offset, int whence);
+  virtual int FcntlCall(Arguments* arguments, int cmd, ...);
   virtual int CloseCall(Arguments* arguments);
   static bool HandleMessage(const pp::Var& message);
 

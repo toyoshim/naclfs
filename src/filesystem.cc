@@ -31,6 +31,7 @@
 
 #include "filesystem.h"
 
+#include <stdarg.h>
 #include <sstream>
 #include <string.h>
 
@@ -107,6 +108,22 @@ off_t FileSystem::Delegate::Lseek(off_t offset, int whence) {
   return arguments.result.lseek;
 }
 
+int FileSystem::Delegate::Fcntl(int cmd, ...) {
+  va_list ap;
+  va_start(ap, cmd);
+  int arg1 = va_arg(ap, int);
+  va_end(ap);
+  if (core_->IsMainThread())
+    return -1;
+  Arguments arguments;
+  arguments.delegate = this;
+  arguments.function = FCNTL;
+  arguments.u.fcntl.cmd = cmd;
+  arguments.u.fcntl.arg1 = arg1;
+  Call(arguments);
+  return arguments.result.fcntl;
+}
+
 int FileSystem::Delegate::Close() {
   if (core_->IsMainThread())
     return -1;
@@ -166,6 +183,12 @@ void FileSystem::Delegate::Switch(Arguments* arguments) {
                                          arguments->u.lseek.offset,
                                          arguments->u.lseek.whence);
       break;
+    case FCNTL:
+      arguments->result.fcntl =
+          arguments->delegate->FcntlCall(arguments,
+                                         arguments->u.fcntl.cmd,
+                                         arguments->u.fcntl.arg1);
+      break;
     case CLOSE:
       arguments->result.close =
           arguments->delegate->CloseCall(arguments);
@@ -212,11 +235,10 @@ ssize_t FileSystem::Read(int fildes, void* buf, size_t nbytes) {
   if (!delegate)
     return -1;
   for (;;) {
-    // TODO: Fix
-    // Blobking I/O must be implemented in PortFileSystem.
-    // Html5FileSystem must return 0 at EOF.
+    // TODO: Move lock related code into PortFileSystem.
+    // Shoud remove magic number -2 for blocking.
     ssize_t result = delegate->Read(buf, nbytes);
-    if (result != 0)
+    if (result != -2)
       return result;
     pthread_mutex_lock(&mutex_);
   }
@@ -235,6 +257,17 @@ off_t FileSystem::Lseek(int fildes, off_t offset, int whence) {
   if (!delegate)
     return -1;
   return delegate->Lseek(offset, whence);
+}
+
+int FileSystem::Fcntl(int fildes, int cmd, ...) {
+  va_list ap;
+  va_start(ap, cmd);
+  int arg1 = va_arg(ap, int);
+  va_end(ap);
+  Delegate* delegate = GetDelegate(fildes);
+  if (!delegate)
+    return -1;
+  return delegate->Fcntl(cmd, arg1);
 }
 
 int FileSystem::Close(int fildes) {

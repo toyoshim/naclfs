@@ -195,6 +195,11 @@ off_t Html5FileSystem::LseekCall(
   return offset_;
 }
 
+int Html5FileSystem::FcntlCall(Arguments* arguments, int cmd, ...) {
+  naclfs_->Log("Html5FileSystem::Fcntl not supported\n");
+  return -1;
+}
+
 int Html5FileSystem::CloseCall(Arguments* arguments) {
   file_io_->Close();
   return 0;

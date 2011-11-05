@@ -50,6 +50,10 @@ off_t __wrap_lseek(int fildes, off_t offset, int whence) {
   return naclfs::NaClFs::GetFileSystem()->Lseek(fildes, offset, whence);
 }
 
+int __wrap_fcntl(int fildes, int cmd, ...) {
+  return naclfs::NaClFs::GetFileSystem()->Fcntl(fildes, cmd);
+}
+
 int __wrap_close(int fildes) {
   return naclfs::NaClFs::GetFileSystem()->Close(fildes);
 }

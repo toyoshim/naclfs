@@ -33,6 +33,7 @@
 
 #include <fcntl.h>
 #include <sstream>
+#include <stdarg.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -51,6 +52,7 @@ PortFileSystem::PortFileSystem(NaClFs* naclfs)
     : naclfs_(naclfs),
       readable_(false),
       writable_(false),
+      blocking_(true),
       id_(-1) {
 }
 
@@ -92,6 +94,12 @@ ssize_t PortFileSystem::Read(void* buf, size_t nbytes) {
     read_size++;
     buffer_.erase(buffer_.begin());
   }
+  if (read_size == 0) {
+    if (blocking_)
+      return -2;
+    else
+      return -1;
+  }
   return static_cast<ssize_t>(read_size);
 }
 
@@ -105,7 +113,26 @@ ssize_t PortFileSystem::Write(const void* buf, size_t nbytes) {
 }
 
 off_t PortFileSystem::Lseek(off_t offset, int whence) {
-  naclfs_->Log("PortFileSystem: lseek is not supported.\n");
+  naclfs_->Log("PortFileSystem::Lseek not supported.\n");
+  return -1;
+}
+
+int PortFileSystem::Fcntl(int cmd, ...) {
+  if (cmd == F_SETFL) {
+    va_list ap;
+    va_start(ap, cmd);
+    int flag = va_arg(ap, int);
+    va_end(ap);
+    blocking_ = !(flag & O_NONBLOCK);
+    if (flag & ~O_NONBLOCK) {
+      std::stringstream ss;
+      ss << "PortFileSystem::Fcntl F_SETFL unknown flag: ";
+      ss << flag << std::endl;
+      naclfs_->Log(ss.str().c_str());
+    }
+  } else {
+    naclfs_->Log("PortFileSystem::Fcntl not supported.\n");
+  }
   return -1;
 }
 
