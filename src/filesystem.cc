@@ -146,6 +146,49 @@ int FileSystem::Delegate::Stat(const char* path, struct stat* buf) {
   return arguments.result.stat;
 }
 
+DIR* FileSystem::Delegate::OpenDir(const char* dirname) {
+  if (core_->IsMainThread())
+    return NULL;
+  Arguments arguments;
+  arguments.delegate = this;
+  arguments.function = OPENDIR;
+  arguments.u.opendir.dirname = dirname;
+  Call(arguments);
+  return arguments.result.opendir;
+}
+
+void FileSystem::Delegate::RewindDir(DIR* dirp) {
+  if (core_->IsMainThread())
+    return;
+  Arguments arguments;
+  arguments.delegate = this;
+  arguments.function = REWINDDIR;
+  arguments.u.rewinddir.dirp = dirp;
+  Call(arguments);
+}
+
+struct dirent* FileSystem::Delegate::ReadDir(DIR* dirp) {
+  if (core_->IsMainThread())
+    return NULL;
+  Arguments arguments;
+  arguments.delegate = this;
+  arguments.function = READDIR;
+  arguments.u.readdir.dirp = dirp;
+  Call(arguments);
+  return arguments.result.readdir;
+}
+
+int FileSystem::Delegate::CloseDir(DIR* dirp) {
+  if (core_->IsMainThread())
+    return -1;
+  Arguments arguments;
+  arguments.delegate = this;
+  arguments.function = CLOSEDIR;
+  arguments.u.closedir.dirp = dirp;
+  Call(arguments);
+  return arguments.result.closedir;
+}
+
 void FileSystem::Delegate::Lock() {
   pthread_mutex_lock(&mutex_);
 }
@@ -210,6 +253,25 @@ void FileSystem::Delegate::Switch(Arguments* arguments) {
 	  arguments->delegate->StatCall(arguments,
 					arguments->u.stat.path,
 					arguments->u.stat.buf);
+      break;
+    case OPENDIR:
+      arguments->result.opendir =
+	  arguments->delegate->OpenDirCall(arguments,
+					   arguments->u.opendir.dirname);
+      break;
+    case REWINDDIR:
+      arguments->delegate->RewindDirCall(arguments,
+					 arguments->u.rewinddir.dirp);
+      break;
+    case READDIR:
+      arguments->result.readdir =
+	  arguments->delegate->ReadDirCall(arguments,
+					   arguments->u.readdir.dirp);
+      break;
+    case CLOSEDIR:
+      arguments->result.closedir =
+	arguments->delegate->CloseDirCall(arguments,
+					  arguments->u.closedir.dirp);
       break;
   }
 }
@@ -306,6 +368,46 @@ int FileSystem::Stat(const char* path, struct stat* buf) {
   }
   int result = delegate->Stat(fullpath.c_str(), buf);
   delete delegate;
+  return result;
+}
+
+DIR* FileSystem::OpenDir(const char* dirname) {
+  if (!dirname)
+    return NULL;
+  std::string fullpath;
+  CreateFullpath(dirname, &fullpath);
+  Delegate* delegate = CreateDelegate(fullpath.c_str());
+  if (!delegate) {
+    naclfs_->Log("FileSystem: can not create delegate\n");
+    return NULL;
+  }
+  DIR* result = delegate->OpenDir(fullpath.c_str());
+  if (!result)
+    delete delegate;
+  return result;
+}
+
+void FileSystem::RewindDir(DIR* dirp) {
+  Delegate* delegate = reinterpret_cast<Dir*>(dirp)->delegate();
+  if (!delegate)
+    return;
+  delegate->RewindDir(dirp);
+}
+
+struct dirent* FileSystem::ReadDir(DIR* dirp) {
+  Delegate* delegate = reinterpret_cast<Dir*>(dirp)->delegate();
+  if (!delegate)
+    return NULL;
+  return delegate->ReadDir(dirp);
+}
+
+int FileSystem::CloseDir(DIR* dirp) {
+  Delegate* delegate = reinterpret_cast<Dir*>(dirp)->delegate();
+  if (!delegate)
+    return -1;
+  int result = delegate->CloseDir(dirp);
+  if (!result)
+    delete delegate;
   return result;
 }
 

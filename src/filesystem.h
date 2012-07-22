@@ -33,12 +33,13 @@
 #define NACLFS_FILESYSTEM_H_
 #pragma once
 
+#include <dirent.h>
 #include <pthread.h>
 #include <stdio.h>
+#include <sys/stat.h>
+
 #include <string>
 #include <vector>
-
-#include <sys/stat.h>
 
 #include "ppapi/cpp/completion_callback.h"
 
@@ -65,6 +66,10 @@ class FileSystem {
       FCNTL,
       CLOSE,
       STAT,
+      OPENDIR,
+      REWINDDIR,
+      READDIR,
+      CLOSEDIR
     };
     typedef struct _Arguments {
       enum Function function;
@@ -95,6 +100,18 @@ class FileSystem {
 	  const char* path;
 	  struct stat* buf;
 	} stat;
+	struct {
+	  const char* dirname;
+	} opendir;
+	struct {
+	  DIR* dirp;
+	} rewinddir;
+	struct {
+	  DIR* dirp;
+	} readdir;
+	struct {
+	  DIR* dirp;
+	} closedir;
       } u;
       union {
         int32_t callback;
@@ -105,6 +122,9 @@ class FileSystem {
         int fcntl;
         int close;
 	int stat;
+	DIR* opendir;
+	struct dirent* readdir;
+	int closedir;
       } result;
     } Arguments;
 
@@ -117,19 +137,34 @@ class FileSystem {
     virtual int Fcntl(int cmd, ...);
     virtual int Close();
     virtual int Stat(const char* path, struct stat* buf);
+    virtual DIR* OpenDir(const char* dirname);
+    virtual void RewindDir(DIR* dirp);
+    virtual struct dirent* ReadDir(DIR* dirp);
+    virtual int CloseDir(DIR* dirp);
 
-    virtual int OpenCall(
-        Arguments* arguments, const char* path, int oflag, ...) { return 0; }
-    virtual ssize_t ReadCall(
-        Arguments* arguments, void* buf, size_t nbytes) { return 0; }
-    virtual ssize_t WriteCall(
-        Arguments* arguments, const void* buf, size_t nbytes) { return 0; }
-    virtual off_t LseekCall(
-        Arguments* arguments, off_t offset, int whence) { return 0; }
-    virtual int FcntlCall(Arguments* arguments, int cmd, ...) { return 0; }
-    virtual int CloseCall(Arguments* arguments) { return 0; }
-    virtual int StatCall(
-        Arguments* arguments, const char* path, struct stat* buf) { return 0; }
+    virtual int OpenCall(Arguments* arguments,
+			 const char* path,
+			 int oflag, ...) { return -1; }
+    virtual ssize_t ReadCall(Arguments* arguments,
+			     void* buf,
+			     size_t nbytes) { return -1; }
+    virtual ssize_t WriteCall(Arguments* arguments,
+			      const void* buf,
+			      size_t nbytes) { return -1; }
+    virtual off_t LseekCall(Arguments* arguments,
+			    off_t offset,
+			    int whence) { return -1; }
+    virtual int FcntlCall(Arguments* arguments, int cmd, ...) { return -1; }
+    virtual int CloseCall(Arguments* arguments) { return -1; }
+    virtual int StatCall(Arguments* arguments,
+			 const char* path,
+			 struct stat* buf) { return -1; }
+    virtual DIR* OpenDirCall(Arguments* arguments,
+			     const char* dirname) { return NULL; }
+    virtual void RewindDirCall(Arguments* arguments, DIR* dirp) {}
+    virtual struct dirent* ReadDirCall(Arguments* arguments,
+				       DIR* dirp) { return NULL; }
+    virtual int CloseDirCall(Arguments* arguments, DIR* dirp) { return -1; }
 
    protected:
     pp::CompletionCallback callback_;
@@ -147,6 +182,17 @@ class FileSystem {
     static pp::Core* core_;
   };
 
+  class Dir {
+   public:
+    Dir(Delegate* delegate) : delegate_(delegate) {}
+    virtual ~Dir() {}
+
+    Delegate* delegate() { return delegate_; }
+
+   protected:
+    Delegate* delegate_;
+  };
+
   FileSystem(NaClFs* naclfs);
   ~FileSystem();
 
@@ -157,6 +203,10 @@ class FileSystem {
   int Fcntl(int fildes, int cmd, ...);
   int Close(int fildes);
   int Stat(const char* path, struct stat* buf);
+  DIR* OpenDir(const char* dirname);
+  void RewindDir(DIR* dirp);
+  struct dirent* ReadDir(DIR* dirp);
+  int CloseDir(DIR* dirp);
 
   static bool HandleMessage(const pp::Var& message);
 

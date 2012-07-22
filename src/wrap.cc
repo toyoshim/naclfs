@@ -101,3 +101,39 @@ int __wrap_stat(const char* path, struct stat* buf) {
   }
   return naclfs::NaClFs::GetFileSystem()->Stat(path, buf);
 }
+
+DIR* __wrap_opendir(const char* dirname) {
+  if (naclfs::NaClFs::trace()) {
+    std::stringstream ss;
+    ss << "enter opendir:" << "\n dirname=" << dirname << "\n";
+    naclfs::NaClFs::Log(ss.str().c_str());
+  }
+  return naclfs::NaClFs::GetFileSystem()->OpenDir(dirname);
+}
+
+void __wrap_rewinddir(DIR* dirp) {
+  if (naclfs::NaClFs::trace()) {
+    std::stringstream ss;
+    ss << "enter rewinddir:" << "\n dirp=" << dirp << "\n";
+    naclfs::NaClFs::Log(ss.str().c_str());
+  }
+  naclfs::NaClFs::GetFileSystem()->RewindDir(dirp);
+}
+
+struct dirent* __wrap_readdir(DIR* dirp) {
+  if (naclfs::NaClFs::trace()) {
+    std::stringstream ss;
+    ss << "enter readdir:" << "\n dirp=" << dirp << "\n";
+    naclfs::NaClFs::Log(ss.str().c_str());
+  }
+  return naclfs::NaClFs::GetFileSystem()->ReadDir(dirp);
+}
+
+int __wrap_closedir(DIR* dirp) {
+  if (naclfs::NaClFs::trace()) {
+    std::stringstream ss;
+    ss << "enter closedir:" << "\n dirp=" << dirp << "\n";
+    naclfs::NaClFs::Log(ss.str().c_str());
+  }
+  return naclfs::NaClFs::GetFileSystem()->CloseDir(dirp);
+}

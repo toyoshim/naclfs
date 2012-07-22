@@ -40,10 +40,57 @@
 #include "ppapi/c/pp_errors.h"
 #include "ppapi/c/ppb_file_io.h"
 #include "ppapi/cpp/completion_callback.h"
+#include "ppapi/cpp/dev/directory_entry_dev.h"
+#include "ppapi/cpp/dev/directory_reader_dev.h"
 #include "ppapi/cpp/file_io.h"
 #include "ppapi/cpp/file_ref.h"
 #include "ppapi/cpp/file_system.h"
 #include "ppapi/cpp/var.h"
+
+namespace {
+
+class Html5FileSystemDir : public naclfs::FileSystem::Dir {
+ public:
+  Html5FileSystemDir(naclfs::Html5FileSystem* owner,
+		     const pp::FileRef& directory_ref)
+    : Dir(owner),
+      reader_(new pp::DirectoryReader_Dev(directory_ref)) {}
+  virtual ~Html5FileSystemDir() {}
+
+  int32_t ReadDir(const pp::CompletionCallback& cc) {
+    return reader_->GetNextEntry(&entry_, cc);
+  }
+
+  struct dirent* ReadDirComplete() {
+    memset(&dirent_, 0, sizeof(struct dirent));
+    /*
+    switch (entry_.file_type()) {
+      case PP_FILETYPE_REGULAR:
+	dirent_.d_type = DT_REG;
+	break;
+      case PP_FILETYPE_DIRECTORY
+	dirent._d_type = DT_DIR;
+	break;
+      case PP_FILETYPE_OTHER:
+      default:
+	dirent._d_type = DT_UNKNOWN;
+	break;
+    }
+    */
+    std::string name = entry_.file_ref().GetName().AsString();
+    strncpy(dirent_.d_name, name.c_str(), 256);
+    if (name.length() > 255)
+      dirent_.d_name[255] = 0;
+    return &dirent_;
+  }
+
+ private:
+  pp::DirectoryReader_Dev* reader_;
+  pp::DirectoryEntry_Dev entry_;
+  struct dirent dirent_;
+};
+
+};  // namespace
 
 namespace naclfs {
 
@@ -59,6 +106,7 @@ Html5FileSystem::Html5FileSystem(NaClFs* naclfs)
 }
 
 Html5FileSystem::~Html5FileSystem() {
+  // TODO: Fix memory leaks on file_io_ and file_ref_.
   delete file_io_;
   delete file_ref_;
 }
@@ -118,13 +166,13 @@ int Html5FileSystem::OpenCall(Arguments* arguments,
         std::endl;
     naclfs_->Log(ss.str().c_str());
   }
-  waiting_ = true;
   if (file_io_->Open(*file_ref_, flags, callback_) !=
       PP_OK_COMPLETIONPENDING) {
     naclfs_->Log(
         "Html5FileSystem::Open doesn't return PP_OK_COMPLETIONPENDING\n");
     return -1;
   }
+  waiting_ = true;
   arguments->chaining = true;
   return 0;
 }
@@ -140,13 +188,13 @@ ssize_t Html5FileSystem::ReadCall(Arguments* arguments,
     return arguments->result.callback;
   }
 
-  waiting_ = true;
   if (file_io_->Read(offset_, static_cast<char*>(buf), nbytes, callback_) !=
       PP_OK_COMPLETIONPENDING) {
     naclfs_->Log(
         "Html5FileSystem::Read doesn't return PP_OK_COMPLETIONPENDING\n");
     return -1;
   }
+  waiting_ = true;
   arguments->chaining = true;
   return 0;
 }
@@ -160,7 +208,6 @@ ssize_t Html5FileSystem::WriteCall(Arguments* arguments,
     return arguments->result.callback;
   }
 
-  waiting_ = true;
   if (file_io_->Write(
           offset_, static_cast<const char*>(buf), nbytes, callback_) !=
       PP_OK_COMPLETIONPENDING) {
@@ -168,6 +215,7 @@ ssize_t Html5FileSystem::WriteCall(Arguments* arguments,
         "Html5FileSystem::Write doesn't return PP_OK_COMPLETIONPENDING\n");
     return -1;
   }
+  waiting_ = true;
   arguments->chaining = true;
   return 0;
 }
@@ -249,14 +297,64 @@ int Html5FileSystem::StatCall(Arguments* arguments,
 
   file_ref_ = new pp::FileRef(*filesystem_, path);
   file_io_ = new pp::FileIO(naclfs_->GetInstance());
-  waiting_ = true;
   if (file_io_->Open(*file_ref_, 0, callback_) != PP_OK_COMPLETIONPENDING) {
     naclfs_->Log(
         "Html5FileSystem::Open doesn't return PP_OK_COMPLETIONPENDING\n");
+    waiting_ = false;
     return -1;
   }
+  waiting_ = true;
   arguments->chaining = true;
   return 0;
+}
+
+DIR* Html5FileSystem::OpenDirCall(Arguments* arguments, const char* dirname) {
+  if (!filesystem_) {
+    Initialize(arguments);
+    return NULL;
+  }
+
+  pp::FileRef file_ref(*filesystem_, dirname);
+  Html5FileSystemDir* dir = new Html5FileSystemDir(this, file_ref);
+  return reinterpret_cast<DIR*>(dir);
+}
+
+void Html5FileSystem::RewindDirCall(Arguments* arguments, DIR* dirp) {
+  // TODO
+}
+
+struct dirent* Html5FileSystem::ReadDirCall(Arguments* arguments, DIR* dirp) {
+  Html5FileSystemDir* dir = reinterpret_cast<Html5FileSystemDir*>(dirp);
+  if (!dir)
+    return NULL;
+
+  if (waiting_) {
+    waiting_ = false;
+    if (arguments->result.callback != 0) {
+      // TODO: Oops, DirectoryReader doesn't work in NaCl yet.
+      // See, http://crbug.com/106129
+      std::stringstream ss;
+      ss << "Html5FileSystem::ReadDir failed with error code " <<
+	  arguments->result.callback << "\n";
+      naclfs_->Log(ss.str().c_str());
+      return NULL;
+    }
+    return dir->ReadDirComplete();
+  }
+
+  if (dir->ReadDir(callback_) != PP_OK_COMPLETIONPENDING) {
+    naclfs_->Log(
+        "Html5FileSystem::ReadDir doesn't return PP_OK_COMPLETIONPENDING\n");
+    return NULL;
+  }
+  waiting_ = true;
+  arguments->chaining = true;
+  return NULL;
+}
+
+int Html5FileSystem::CloseDirCall(Arguments* arguments, DIR* dirp) {
+  // TODO
+  return -1;
 }
 
 bool Html5FileSystem::HandleMessage(const pp::Var& message) {

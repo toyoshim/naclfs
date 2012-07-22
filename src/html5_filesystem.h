@@ -65,6 +65,10 @@ class Html5FileSystem : public FileSystem::Delegate {
   virtual int CloseCall(Arguments* arguments);
   virtual int StatCall(
       Arguments* arguments, const char* path, struct stat* buf);
+  virtual DIR* OpenDirCall(Arguments* arguments, const char* dirname);
+  virtual void RewindDirCall(Arguments* arguments, DIR* dirp);
+  virtual struct dirent* ReadDirCall(Arguments* arguments, DIR* dirp);
+  virtual int CloseDirCall(Arguments* arguments, DIR* dirp);
   static bool HandleMessage(const pp::Var& message);
 
  private:

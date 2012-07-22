@@ -37,6 +37,7 @@
 extern "C" {
 # endif  // defined(__cplusplus)
 
+# include <dirent.h>
 # include <stdio.h>
 # include <sys/stat.h>
 
@@ -47,6 +48,10 @@ off_t __wrap_lseek(int fildes, off_t offset, int whence);
 int __wrap_fcntl(int fildes, int cmd, ...);
 int __wrap_close(int fildes);
 int __wrap_stat(const char* path, struct stat* buf);
+DIR* __wrap_opendir(const char* dirname);
+void __wrap_rewinddir(DIR* dirp);
+struct dirent* __wrap_readdir(DIR* dirp);
+int __wrap_closedir(DIR* dirp);
 
 # if defined(__cplusplus)
 };

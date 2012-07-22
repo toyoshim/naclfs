@@ -12,6 +12,10 @@ function libs() {
   _wrap "fcntl"
   _wrap "close"
   _wrap "stat"
+  _wrap "opendir"
+  _wrap "rewinddir"
+  _wrap "readdir"
+  _wrap "closedir"
   echo
 }
 

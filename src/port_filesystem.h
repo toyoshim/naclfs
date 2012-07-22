@@ -58,6 +58,10 @@ class PortFileSystem : public FileSystem::Delegate {
   virtual int Fcntl(int cmd, ...);
   virtual int Close();
   virtual int Stat(const char* path, struct stat* buf);
+  virtual DIR* OpenDir(const char* dirname) { return NULL; }
+  virtual void RewindDir(DIR* dirp) {}
+  virtual struct dirent* ReadDir(DIR* dirp) { return NULL; }
+  virtual int CloseDir(DIR* dirp) { return -1; }
   static bool HandleMessage(const pp::Var& message);
 
  private:
