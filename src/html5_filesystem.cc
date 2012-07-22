@@ -210,6 +210,7 @@ int Html5FileSystem::StatCall(Arguments* arguments,
 
   if (waiting_) {
     waiting_ = false;
+    // TODO: Queries on directories seem to fail with error code -2.
     if (arguments->result.callback != 0)
       return -1;
     querying_ = true;
@@ -249,8 +250,7 @@ int Html5FileSystem::StatCall(Arguments* arguments,
   file_ref_ = new pp::FileRef(*filesystem_, path);
   file_io_ = new pp::FileIO(naclfs_->GetInstance());
   waiting_ = true;
-  if (file_io_->Open(*file_ref_, PP_FILEOPENFLAG_READ, callback_) !=
-      PP_OK_COMPLETIONPENDING) {
+  if (file_io_->Open(*file_ref_, 0, callback_) != PP_OK_COMPLETIONPENDING) {
     naclfs_->Log(
         "Html5FileSystem::Open doesn't return PP_OK_COMPLETIONPENDING\n");
     return -1;
