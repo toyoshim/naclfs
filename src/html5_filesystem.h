@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2011, Takashi TOYOSHIMA <toyoshim@gmail.com>
+// Copyright (c) 2012, Takashi TOYOSHIMA <toyoshim@gmail.com>
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -63,9 +63,13 @@ class Html5FileSystem : public FileSystem::Delegate {
   virtual off_t LseekCall(Arguments* arguments, off_t offset, int whence);
   virtual int FcntlCall(Arguments* arguments, int cmd, ...);
   virtual int CloseCall(Arguments* arguments);
+  virtual int StatCall(
+      Arguments* arguments, const char* path, struct stat* buf);
   static bool HandleMessage(const pp::Var& message);
 
  private:
+  int Initialize(Arguments* arguments);
+
   static pp::FileSystem* filesystem_;
 
   pp::FileRef* file_ref_;

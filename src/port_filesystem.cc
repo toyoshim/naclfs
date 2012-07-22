@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2011, Takashi TOYOSHIMA <toyoshim@gmail.com>
+// Copyright (c) 2012, Takashi TOYOSHIMA <toyoshim@gmail.com>
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -140,6 +140,11 @@ int PortFileSystem::Close() {
   if (id_ < 0)
     return -1;
   return 0;
+}
+
+int PortFileSystem::Stat(const char* path, struct stat* buf) {
+  // TODO
+  return -1;
 }
 
 bool PortFileSystem::HandleMessage(const pp::Var& message) {

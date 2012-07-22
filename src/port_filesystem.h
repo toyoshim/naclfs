@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2011, Takashi TOYOSHIMA <toyoshim@gmail.com>
+// Copyright (c) 2012, Takashi TOYOSHIMA <toyoshim@gmail.com>
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -57,6 +57,7 @@ class PortFileSystem : public FileSystem::Delegate {
   virtual off_t Lseek(off_t offset, int whence);
   virtual int Fcntl(int cmd, ...);
   virtual int Close();
+  virtual int Stat(const char* path, struct stat* buf);
   static bool HandleMessage(const pp::Var& message);
 
  private:

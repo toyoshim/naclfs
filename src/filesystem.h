@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2011, Takashi TOYOSHIMA <toyoshim@gmail.com>
+// Copyright (c) 2012, Takashi TOYOSHIMA <toyoshim@gmail.com>
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -38,6 +38,8 @@
 #include <string>
 #include <vector>
 
+#include <sys/stat.h>
+
 #include "ppapi/cpp/completion_callback.h"
 
 namespace pp {
@@ -62,6 +64,7 @@ class FileSystem {
       LSEEK,
       FCNTL,
       CLOSE,
+      STAT,
     };
     typedef struct _Arguments {
       enum Function function;
@@ -88,6 +91,10 @@ class FileSystem {
           int cmd;
           int arg1;
         } fcntl;
+	struct {
+	  const char* path;
+	  struct stat* buf;
+	} stat;
       } u;
       union {
         int32_t callback;
@@ -97,6 +104,7 @@ class FileSystem {
         off_t lseek;
         int fcntl;
         int close;
+	int stat;
       } result;
     } Arguments;
 
@@ -108,17 +116,20 @@ class FileSystem {
     virtual off_t Lseek(off_t offset, int whence);
     virtual int Fcntl(int cmd, ...);
     virtual int Close();
+    virtual int Stat(const char* path, struct stat* buf);
 
     virtual int OpenCall(
-        Arguments* arguments, const char* path, int oflag, ...) { return 0; };
+        Arguments* arguments, const char* path, int oflag, ...) { return 0; }
     virtual ssize_t ReadCall(
-        Arguments* arguments, void* buf, size_t nbytes) { return 0; };
+        Arguments* arguments, void* buf, size_t nbytes) { return 0; }
     virtual ssize_t WriteCall(
-        Arguments* arguments, const void* buf, size_t nbytes) { return 0; };
+        Arguments* arguments, const void* buf, size_t nbytes) { return 0; }
     virtual off_t LseekCall(
-        Arguments* arguments, off_t offset, int whence) { return 0; };
-    virtual int FcntlCall(Arguments* arguments, int cmd, ...) { return 0; };
-    virtual int CloseCall(Arguments* arguments) { return 0; };
+        Arguments* arguments, off_t offset, int whence) { return 0; }
+    virtual int FcntlCall(Arguments* arguments, int cmd, ...) { return 0; }
+    virtual int CloseCall(Arguments* arguments) { return 0; }
+    virtual int StatCall(
+        Arguments* arguments, const char* path, struct stat* buf) { return 0; }
 
    protected:
     pp::CompletionCallback callback_;
@@ -145,10 +156,12 @@ class FileSystem {
   off_t Lseek(int fildes, off_t offset, int whence);
   int Fcntl(int fildes, int cmd, ...);
   int Close(int fildes);
+  int Stat(const char* path, struct stat* buf);
 
   static bool HandleMessage(const pp::Var& message);
 
  private:
+  void CreateFullpath(const char* path, std::string* fullpath);
   Delegate* CreateDelegate(const char* path);
   int BindToDescriptor(Delegate* delegate);
   Delegate* GetDelegate(int fildes);

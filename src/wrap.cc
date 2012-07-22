@@ -93,3 +93,11 @@ int __wrap_close(int fildes) {
   return naclfs::NaClFs::GetFileSystem()->Close(fildes);
 }
 
+int __wrap_stat(const char* path, struct stat* buf) {
+  if (naclfs::NaClFs::trace()) {
+    std::stringstream ss;
+    ss << "enter stat:" << "\n path=" << path << "\n buf=" << buf << "\n";
+    naclfs::NaClFs::Log(ss.str().c_str());
+  }
+  return naclfs::NaClFs::GetFileSystem()->Stat(path, buf);
+}

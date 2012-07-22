@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2011, Takashi TOYOSHIMA <toyoshim@gmail.com>
+// Copyright (c) 2012, Takashi TOYOSHIMA <toyoshim@gmail.com>
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -134,6 +134,18 @@ int FileSystem::Delegate::Close() {
   return arguments.result.close;
 }
 
+int FileSystem::Delegate::Stat(const char* path, struct stat* buf) {
+  if (core_->IsMainThread())
+    return -1;
+  Arguments arguments;
+  arguments.delegate = this;
+  arguments.function = STAT;
+  arguments.u.stat.path = path;
+  arguments.u.stat.buf = buf;
+  Call(arguments);
+  return arguments.result.stat;
+}
+
 void FileSystem::Delegate::Lock() {
   pthread_mutex_lock(&mutex_);
 }
@@ -193,6 +205,12 @@ void FileSystem::Delegate::Switch(Arguments* arguments) {
       arguments->result.close =
           arguments->delegate->CloseCall(arguments);
       break;
+    case STAT:
+      arguments->result.stat =
+	  arguments->delegate->StatCall(arguments,
+					arguments->u.stat.path,
+					arguments->u.stat.buf);
+      break;
   }
 }
 
@@ -211,12 +229,7 @@ int FileSystem::Open(const char* path, int oflag, ...) {
   if (!path)
     return -1;
   std::string fullpath;
-  if (path[0] == '/') {
-    fullpath = path;
-  } else {
-    fullpath = cwd_;
-    fullpath += path;
-  }
+  CreateFullpath(path, &fullpath);
   Delegate* delegate = CreateDelegate(fullpath.c_str());
   if (!delegate) {
     naclfs_->Log("FileSystem: can not create delegate\n");
@@ -281,10 +294,35 @@ int FileSystem::Close(int fildes) {
   return result;
 }
 
+int FileSystem::Stat(const char* path, struct stat* buf) {
+  if (!path)
+    return -1;
+  std::string fullpath;
+  CreateFullpath(path, &fullpath);
+  Delegate* delegate = CreateDelegate(fullpath.c_str());
+  if (!delegate) {
+    naclfs_->Log("FileSystem: can not create delegate\n");
+    return -1;
+  }
+  int result = delegate->Stat(fullpath.c_str(), buf);
+  delete delegate;
+  return result;
+}
+
 bool FileSystem::HandleMessage(const pp::Var& message) {
   bool result = PortFileSystem::HandleMessage(message);
   pthread_mutex_unlock(&NaClFs::GetFileSystem()->mutex_);
   return result;
+}
+
+void FileSystem::CreateFullpath(const char* path, std::string* fullpath) {
+  // TODO: Handle directories.
+  if (path[0] == '/') {
+    *fullpath = path;
+  } else {
+    *fullpath = cwd_;
+    *fullpath += path;
+  }
 }
 
 FileSystem::Delegate* FileSystem::CreateDelegate(const char* path) {
