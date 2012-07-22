@@ -46,7 +46,7 @@ int __wrap_open(const char* path, int oflag, ...) {
 }
 
 ssize_t __wrap_read(int fildes, void* buf, size_t nbytes) {
-  if (naclfs::NaClFs::trace()) {
+  if (fildes > 2 && naclfs::NaClFs::trace()) {
     std::stringstream ss;
     ss << "enter read:" << "\n fildes=" << fildes << "\n buf=" << buf <<
         "\n nbytes=" << nbytes << "\n";
@@ -56,7 +56,7 @@ ssize_t __wrap_read(int fildes, void* buf, size_t nbytes) {
 }
 
 ssize_t __wrap_write(int fildes, const void* buf, size_t nbytes) {
-  if (naclfs::NaClFs::trace()) {
+  if (fildes > 2 && naclfs::NaClFs::trace()) {
     std::stringstream ss;
     ss << "enter write:" << "\n fildes=" << fildes << "\n buf=" << buf <<
         "\n nbytes=" << nbytes << "\n";
