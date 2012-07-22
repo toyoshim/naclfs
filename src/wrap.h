@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2011, Takashi TOYOSHIMA <toyoshim@gmail.com>
+// Copyright (c) 2012, Takashi TOYOSHIMA <toyoshim@gmail.com>
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -38,6 +38,7 @@ extern "C" {
 # endif  // defined(__cplusplus)
 
 # include <stdio.h>
+# include <sys/stat.h>
 
 int __wrap_open(const char* path, int oflag, ...);
 ssize_t __wrap_read(int fildes, void* buf, size_t nbytes);
@@ -45,6 +46,7 @@ ssize_t __wrap_write(int fildes, const void* buf, size_t nbytes);
 off_t __wrap_lseek(int fildes, off_t offset, int whence);
 int __wrap_fcntl(int fildes, int cmd, ...);
 int __wrap_close(int fildes);
+int __wrap_stat(const char* path, struct stat* buf);
 
 # if defined(__cplusplus)
 };

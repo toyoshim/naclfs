@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, Takashi TOYOSHIMA <toyoshim@gmail.com>
+ * Copyright (c) 2012, Takashi TOYOSHIMA <toyoshim@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -31,30 +31,65 @@
 
 #include "wrap.h"
 
+#include <sstream>
+
 #include "filesystem.h"
 #include "naclfs.h"
 
 int __wrap_open(const char* path, int oflag, ...) {
+  if (naclfs::NaClFs::trace()) {
+    std::stringstream ss;
+    ss << "enter open:" << "\n path=" << path << "\n oflag=" << oflag << "\n";
+    naclfs::NaClFs::Log(ss.str().c_str());
+  }
   return naclfs::NaClFs::GetFileSystem()->Open(path, oflag);
 }
 
 ssize_t __wrap_read(int fildes, void* buf, size_t nbytes) {
+  if (naclfs::NaClFs::trace()) {
+    std::stringstream ss;
+    ss << "enter read:" << "\n fildes=" << fildes << "\n buf=" << buf <<
+        "\n nbytes=" << nbytes << "\n";
+    naclfs::NaClFs::Log(ss.str().c_str());
+  }
   return naclfs::NaClFs::GetFileSystem()->Read(fildes, buf, nbytes);
 }
 
 ssize_t __wrap_write(int fildes, const void* buf, size_t nbytes) {
+  if (naclfs::NaClFs::trace()) {
+    std::stringstream ss;
+    ss << "enter write:" << "\n fildes=" << fildes << "\n buf=" << buf <<
+        "\n nbytes=" << nbytes << "\n";
+    naclfs::NaClFs::Log(ss.str().c_str());
+  }
   return naclfs::NaClFs::GetFileSystem()->Write(fildes, buf, nbytes);
 }
 
 off_t __wrap_lseek(int fildes, off_t offset, int whence) {
+  if (naclfs::NaClFs::trace()) {
+    std::stringstream ss;
+    ss << "enter lseek:" << "\n fildes=" << fildes << "\n offset=" << offset <<
+        "\n whence=" << whence << "\n";
+    naclfs::NaClFs::Log(ss.str().c_str());
+  }
   return naclfs::NaClFs::GetFileSystem()->Lseek(fildes, offset, whence);
 }
 
 int __wrap_fcntl(int fildes, int cmd, ...) {
+  if (naclfs::NaClFs::trace()) {
+    std::stringstream ss;
+    ss << "enter fcntl:" << "\n fildes=" << fildes << "\n cmd=" << cmd << "\n";
+    naclfs::NaClFs::Log(ss.str().c_str());
+  }
   return naclfs::NaClFs::GetFileSystem()->Fcntl(fildes, cmd);
 }
 
 int __wrap_close(int fildes) {
+  if (naclfs::NaClFs::trace()) {
+    std::stringstream ss;
+    ss << "enter close:" << "\n fildes=" << fildes << "\n";
+    naclfs::NaClFs::Log(ss.str().c_str());
+  }
   return naclfs::NaClFs::GetFileSystem()->Close(fildes);
 }
 
