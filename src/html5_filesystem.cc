@@ -52,7 +52,7 @@ namespace {
 class Html5FileSystemDir : public naclfs::FileSystem::Dir {
  public:
   Html5FileSystemDir(naclfs::Html5FileSystem* owner,
-		     const pp::FileRef& directory_ref)
+                     const pp::FileRef& directory_ref)
     : Dir(owner),
       reader_(new pp::DirectoryReader_Dev(directory_ref)) {}
   virtual ~Html5FileSystemDir() {}
@@ -63,20 +63,18 @@ class Html5FileSystemDir : public naclfs::FileSystem::Dir {
 
   struct dirent* ReadDirComplete() {
     memset(&dirent_, 0, sizeof(struct dirent));
-    /*
     switch (entry_.file_type()) {
       case PP_FILETYPE_REGULAR:
-	dirent_.d_type = DT_REG;
-	break;
+        dirent_.d_type = DT_REG;
+        break;
       case PP_FILETYPE_DIRECTORY
-	dirent._d_type = DT_DIR;
-	break;
+        dirent._d_type = DT_DIR;
+        break;
       case PP_FILETYPE_OTHER:
       default:
-	dirent._d_type = DT_UNKNOWN;
-	break;
+        dirent._d_type = DT_UNKNOWN;
+        break;
     }
-    */
     std::string name = entry_.file_ref().GetName().AsString();
     strncpy(dirent_.d_name, name.c_str(), 256);
     if (name.length() > 255)
@@ -112,8 +110,8 @@ Html5FileSystem::~Html5FileSystem() {
 }
 
 int Html5FileSystem::OpenCall(Arguments* arguments,
-			      const char* path,
-			      int oflag, ...) {
+                              const char* path,
+                              int oflag, ...) {
   if (!filesystem_)
     return Initialize(arguments);
 
@@ -178,8 +176,8 @@ int Html5FileSystem::OpenCall(Arguments* arguments,
 }
 
 ssize_t Html5FileSystem::ReadCall(Arguments* arguments,
-				  void* buf,
-				  size_t nbytes) {
+                                  void* buf,
+                                  size_t nbytes) {
   if (waiting_) {
     waiting_ = false;
     if (0 == arguments->result.callback)
@@ -200,8 +198,8 @@ ssize_t Html5FileSystem::ReadCall(Arguments* arguments,
 }
 
 ssize_t Html5FileSystem::WriteCall(Arguments* arguments,
-				   const void* buf,
-				   size_t nbytes) {
+                                   const void* buf,
+                                   size_t nbytes) {
   if (waiting_) {
     waiting_ = false;
     offset_ += arguments->result.callback;
@@ -221,8 +219,8 @@ ssize_t Html5FileSystem::WriteCall(Arguments* arguments,
 }
 
 off_t Html5FileSystem::LseekCall(Arguments* arguments,
-				 off_t offset,
-				 int whence) {
+                                 off_t offset,
+                                 int whence) {
   switch (whence) {
     case SEEK_SET:
       offset_ = offset;
@@ -251,14 +249,15 @@ int Html5FileSystem::CloseCall(Arguments* arguments) {
 }
 
 int Html5FileSystem::StatCall(Arguments* arguments,
-			      const char* path,
-			      struct stat* buf) {
+                              const char* path,
+                              struct stat* buf) {
   if (!filesystem_)
     return Initialize(arguments);
 
   if (waiting_) {
     waiting_ = false;
     // TODO: Queries on directories seem to fail with error code -2.
+    // See, http://crbug.com/132201
     if (arguments->result.callback != 0)
       return -1;
     querying_ = true;
@@ -283,14 +282,14 @@ int Html5FileSystem::StatCall(Arguments* arguments,
     buf->st_blocks = (file_info_.size + 511) >> 9;
     switch (file_info_.type) {
       case PP_FILETYPE_REGULAR:
-	buf->st_mode |= S_IFREG;
-	break;
+        buf->st_mode |= S_IFREG;
+        break;
       case PP_FILETYPE_DIRECTORY:
-	buf->st_mode |= S_IFDIR;
-	break;
+        buf->st_mode |= S_IFDIR;
+        break;
       case PP_FILETYPE_OTHER:
       default:
-	break;
+        break;
     }
     return 0;
   }
@@ -335,7 +334,7 @@ struct dirent* Html5FileSystem::ReadDirCall(Arguments* arguments, DIR* dirp) {
       // See, http://crbug.com/106129
       std::stringstream ss;
       ss << "Html5FileSystem::ReadDir failed with error code " <<
-	  arguments->result.callback << "\n";
+          arguments->result.callback << "\n";
       naclfs_->Log(ss.str().c_str());
       return NULL;
     }
@@ -364,7 +363,7 @@ bool Html5FileSystem::HandleMessage(const pp::Var& message) {
 int Html5FileSystem::Initialize(Arguments* arguments) {
   naclfs_->Log("Html5FileSystem: initializing file system...");
   filesystem_ = new pp::FileSystem(naclfs_->GetInstance(),
-				   PP_FILESYSTEMTYPE_LOCALTEMPORARY);
+                                   PP_FILESYSTEMTYPE_LOCALTEMPORARY);
   filesystem_->Open(1024 * 1024, callback_);
   naclfs_->Log("done\n");
   arguments->chaining = true;
