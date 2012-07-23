@@ -42,6 +42,8 @@
 #include "ppapi/cpp/module.h"
 #include "ppapi/cpp/var.h"
 
+#include "wrap.h"
+
 namespace naclfs {
 
 NaClFs* NaClFs::single_instance_ = NULL;
@@ -51,6 +53,7 @@ NaClFs::NaClFs(pp::Instance* instance)
     : filesystem_(new FileSystem(this)),
       core_(pp::Module::Get()->core()),
       instance_(instance) {
+  do_wrap();
   single_instance_ = this;
   pthread_mutex_init(&mutex_, NULL);
   Lock();
@@ -92,4 +95,3 @@ void NaClFs::Unlock() {
 }
 
 }  // namespace naclfs
-

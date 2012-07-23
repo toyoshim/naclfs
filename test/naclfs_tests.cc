@@ -29,10 +29,12 @@
 // DAMAGE.
 //
 
+#include <dirent.h>
 #include <fcntl.h>
 #include <pthread.h>
 #include <sstream>
 #include <stdio.h>
+#include <sys/stat.h>
 
 #include "naclfs.h"
 #include "ppapi/cpp/instance.h"
@@ -64,6 +66,7 @@ class NaClFsTestsInstance: public pp::Instance {
     ss.str("");
     ss << " err: " << fderr << std::endl;
     naclfs_->Log(ss.str().c_str());
+    naclfs_->set_trace(true);
 
     BasicTest();
 
@@ -104,6 +107,21 @@ class NaClFsTestsInstance: public pp::Instance {
       fprintf(stderr, "fread return %d\n", read_size);
       write(STDOUT_FILENO, buffer, read_size);
     } while (read_size == 512);
+    printf("stat on out.txt...\n");
+    struct stat buf;
+    printf("  result: %d\n", stat("out.txt", &buf));
+    printf("  st_mode: %o\n", buf.st_mode);
+    printf("  st_size: %Ld\n", buf.st_size);
+    printf("  st_blksize: %u\n", buf.st_blksize);
+    printf("  st_blocks: %d\n", buf.st_blocks);
+    printf("  st_atime: %Ld\n", buf.st_atime);
+    printf("  st_mtime: %Ld\n", buf.st_mtime);
+    printf("  st_ctime: %Ld\n", buf.st_ctime);
+
+    printf("call opendir which will fail\n");
+    DIR* dir = opendir("foo");
+    printf(" dir = %p\n", dir);
+
     self->naclfs_->Log("start echo\n");
     for (;;) {
       uint8_t buffer[1];
@@ -113,6 +131,7 @@ class NaClFsTestsInstance: public pp::Instance {
       fwrite(buffer, 1, 1, io);
       fflush(io);
     }
+
     self->naclfs_->Log("thread end by EOF\n");
     return NULL;
   }

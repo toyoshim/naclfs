@@ -33,21 +33,17 @@
 #define _NACLFS_WRAP_H_
 #pragma once
 
-# if defined(__cplusplus)
-extern "C" {
-# endif  // defined(__cplusplus)
-
 # include <dirent.h>
 # include <stdio.h>
 # include <sys/stat.h>
 
-int __wrap_open(const char* path, int oflag, ...);
-ssize_t __wrap_read(int fildes, void* buf, size_t nbytes);
-ssize_t __wrap_write(int fildes, const void* buf, size_t nbytes);
-off_t __wrap_lseek(int fildes, off_t offset, int whence);
+void do_wrap(void);
+
+# if defined(__cplusplus)
+extern "C" {
+# endif  // defined(__cplusplus)
+
 int __wrap_fcntl(int fildes, int cmd, ...);
-int __wrap_close(int fildes);
-int __wrap_stat(const char* path, struct stat* buf);
 DIR* __wrap_opendir(const char* dirname);
 void __wrap_rewinddir(DIR* dirp);
 struct dirent* __wrap_readdir(DIR* dirp);

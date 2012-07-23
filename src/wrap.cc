@@ -31,57 +31,31 @@
 
 #include "wrap.h"
 
+#include <irt.h>
+
 #include <sstream>
 
 #include "filesystem.h"
 #include "naclfs.h"
 
-int __wrap_open(const char* path, int oflag, ...) {
+int __wrap_open(const char* path, int oflag, mode_t cmode, int* newfd) {
   if (naclfs::NaClFs::trace()) {
     std::stringstream ss;
     ss << "enter open:" << "\n path=" << path << "\n oflag=" << oflag << "\n";
     naclfs::NaClFs::Log(ss.str().c_str());
   }
-  return naclfs::NaClFs::GetFileSystem()->Open(path, oflag);
+  *newfd = naclfs::NaClFs::GetFileSystem()->Open(path, oflag);
+  // TODO: Handle cmode, and returning errno.
+  return 0;
 }
 
-ssize_t __wrap_read(int fildes, void* buf, size_t nbytes) {
-  if (fildes > 2 && naclfs::NaClFs::trace()) {
-    std::stringstream ss;
-    ss << "enter read:" << "\n fildes=" << fildes << "\n buf=" << buf <<
-        "\n nbytes=" << nbytes << "\n";
-    naclfs::NaClFs::Log(ss.str().c_str());
-  }
-  return naclfs::NaClFs::GetFileSystem()->Read(fildes, buf, nbytes);
-}
-
-ssize_t __wrap_write(int fildes, const void* buf, size_t nbytes) {
-  if (fildes > 2 && naclfs::NaClFs::trace()) {
-    std::stringstream ss;
-    ss << "enter write:" << "\n fildes=" << fildes << "\n buf=" << buf <<
-        "\n nbytes=" << nbytes << "\n";
-    naclfs::NaClFs::Log(ss.str().c_str());
-  }
-  return naclfs::NaClFs::GetFileSystem()->Write(fildes, buf, nbytes);
-}
-
-off_t __wrap_lseek(int fildes, off_t offset, int whence) {
+int __wrap_stat(const char* path, struct stat* buf) {
   if (naclfs::NaClFs::trace()) {
     std::stringstream ss;
-    ss << "enter lseek:" << "\n fildes=" << fildes << "\n offset=" << offset <<
-        "\n whence=" << whence << "\n";
+    ss << "enter stat:" << "\n path=" << path << "\n buf=" << buf << "\n";
     naclfs::NaClFs::Log(ss.str().c_str());
   }
-  return naclfs::NaClFs::GetFileSystem()->Lseek(fildes, offset, whence);
-}
-
-int __wrap_fcntl(int fildes, int cmd, ...) {
-  if (naclfs::NaClFs::trace()) {
-    std::stringstream ss;
-    ss << "enter fcntl:" << "\n fildes=" << fildes << "\n cmd=" << cmd << "\n";
-    naclfs::NaClFs::Log(ss.str().c_str());
-  }
-  return naclfs::NaClFs::GetFileSystem()->Fcntl(fildes, cmd);
+  return naclfs::NaClFs::GetFileSystem()->Stat(path, buf);
 }
 
 int __wrap_close(int fildes) {
@@ -93,13 +67,50 @@ int __wrap_close(int fildes) {
   return naclfs::NaClFs::GetFileSystem()->Close(fildes);
 }
 
-int __wrap_stat(const char* path, struct stat* buf) {
-  if (naclfs::NaClFs::trace()) {
+int __wrap_read(int fildes, void* buf, size_t nbytes, size_t* nread) {
+  if (fildes > 2 && naclfs::NaClFs::trace()) {
     std::stringstream ss;
-    ss << "enter stat:" << "\n path=" << path << "\n buf=" << buf << "\n";
+    ss << "enter read:" << "\n fildes=" << fildes << "\n buf=" << buf <<
+        "\n nbytes=" << nbytes << "\n";
     naclfs::NaClFs::Log(ss.str().c_str());
   }
-  return naclfs::NaClFs::GetFileSystem()->Stat(path, buf);
+  *nread = naclfs::NaClFs::GetFileSystem()->Read(fildes, buf, nbytes);
+  // TODO: Handle returning errono.
+  return 0;
+}
+
+int __wrap_write(int fildes, const void* buf, size_t nbytes, size_t* nwrote) {
+  if (fildes > 2 && naclfs::NaClFs::trace()) {
+    std::stringstream ss;
+    ss << "enter write:" << "\n fildes=" << fildes << "\n buf=" << buf <<
+        "\n nbytes=" << nbytes << "\n";
+    naclfs::NaClFs::Log(ss.str().c_str());
+  }
+  *nwrote = naclfs::NaClFs::GetFileSystem()->Write(fildes, buf, nbytes);
+  // TODO: Handle returning errono.
+  return 0;
+}
+
+int __wrap_seek(int fildes, off_t offset, int whence, off_t* new_offset) {
+  if (naclfs::NaClFs::trace()) {
+    std::stringstream ss;
+    ss << "enter seek:" << "\n fildes=" << fildes << "\n offset=" << offset <<
+        "\n whence=" << whence << "\n";
+    naclfs::NaClFs::Log(ss.str().c_str());
+  }
+  // TODO: Rename Lseek to Seek.
+  *new_offset = naclfs::NaClFs::GetFileSystem()->Lseek(fildes, offset, whence);
+  // TODO: Handle returning errono.
+  return 0;
+}
+
+int __wrap_fcntl(int fildes, int cmd, ...) {
+  if (naclfs::NaClFs::trace()) {
+    std::stringstream ss;
+    ss << "enter fcntl:" << "\n fildes=" << fildes << "\n cmd=" << cmd << "\n";
+    naclfs::NaClFs::Log(ss.str().c_str());
+  }
+  return naclfs::NaClFs::GetFileSystem()->Fcntl(fildes, cmd);
 }
 
 DIR* __wrap_opendir(const char* dirname) {
@@ -136,4 +147,20 @@ int __wrap_closedir(DIR* dirp) {
     naclfs::NaClFs::Log(ss.str().c_str());
   }
   return naclfs::NaClFs::GetFileSystem()->CloseDir(dirp);
+}
+
+extern "C" struct nacl_irt_filename __libnacl_irt_filename;
+extern "C" struct nacl_irt_fdio __libnacl_irt_fdio;
+void do_wrap(void) {
+  __libnacl_irt_filename.open = __wrap_open;
+  __libnacl_irt_filename.stat = __wrap_stat;
+
+  __libnacl_irt_fdio.close = __wrap_close;
+  //__libnacl_irt_fdio.dup = __wrap_dup;
+  //__libnacl_irt_fdio.dup2 = __wrap_dup2;
+  __libnacl_irt_fdio.read = __wrap_read;
+  __libnacl_irt_fdio.write = __wrap_write;
+  __libnacl_irt_fdio.seek = __wrap_seek;
+  //__libnacl_irt_fdio.fstat = __wrap_fstat;
+  //__libnacl_irt_fdio.getdents = __wrap_getdents;
 }

@@ -5,13 +5,7 @@ function _wrap() {
 }
 
 function libs() {
-  _wrap "open"
-  _wrap "read"
-  _wrap "write"
-  _wrap "lseek"
   _wrap "fcntl"
-  _wrap "close"
-  _wrap "stat"
   _wrap "opendir"
   _wrap "rewinddir"
   _wrap "readdir"

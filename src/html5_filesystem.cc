@@ -63,18 +63,6 @@ class Html5FileSystemDir : public naclfs::FileSystem::Dir {
 
   struct dirent* ReadDirComplete() {
     memset(&dirent_, 0, sizeof(struct dirent));
-    switch (entry_.file_type()) {
-      case PP_FILETYPE_REGULAR:
-        dirent_.d_type = DT_REG;
-        break;
-      case PP_FILETYPE_DIRECTORY
-        dirent._d_type = DT_DIR;
-        break;
-      case PP_FILETYPE_OTHER:
-      default:
-        dirent._d_type = DT_UNKNOWN;
-        break;
-    }
     std::string name = entry_.file_ref().GetName().AsString();
     strncpy(dirent_.d_name, name.c_str(), 256);
     if (name.length() > 255)
@@ -315,6 +303,7 @@ DIR* Html5FileSystem::OpenDirCall(Arguments* arguments, const char* dirname) {
 
   pp::FileRef file_ref(*filesystem_, dirname);
   Html5FileSystemDir* dir = new Html5FileSystemDir(this, file_ref);
+  // TODO: Should fail on unexisting path.
   return reinterpret_cast<DIR*>(dir);
 }
 
@@ -371,4 +360,3 @@ int Html5FileSystem::Initialize(Arguments* arguments) {
 }
 
 }  // namespace naclfs
-
