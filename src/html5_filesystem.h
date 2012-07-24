@@ -78,6 +78,7 @@ class Html5FileSystem : public FileSystem::Delegate {
   int Initialize(Arguments* arguments);
 
   static pp::FileSystem* filesystem_;
+  static Html5FileSystem* rpc_object_;
 
   pp::FileRef* file_ref_;
   pp::FileIO* file_io_;
@@ -85,6 +86,7 @@ class Html5FileSystem : public FileSystem::Delegate {
   NaClFs* naclfs_;
   bool waiting_;
   bool querying_;
+  bool remoting_;
   off_t offset_;
 };
 

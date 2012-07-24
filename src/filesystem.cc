@@ -445,7 +445,10 @@ int FileSystem::CloseDir(DIR* dirp) {
 
 bool FileSystem::HandleMessage(const pp::Var& message) {
   bool result = PortFileSystem::HandleMessage(message);
-  pthread_mutex_unlock(&NaClFs::GetFileSystem()->mutex_);
+  if (result)
+    pthread_mutex_unlock(&NaClFs::GetFileSystem()->mutex_);
+  else
+    result = Html5FileSystem::HandleMessage(message);
   return result;
 }
 

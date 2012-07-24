@@ -49,6 +49,11 @@
 
 namespace {
 
+const int kOffCmd = 2;
+const int kOffData = 3;
+const char* const kRpcId = "X5";
+const char* const kCmdStat = "S";
+
 class Html5FileSystemDir : public naclfs::FileSystem::Dir {
  public:
   Html5FileSystemDir(naclfs::Html5FileSystem* owner,
@@ -81,6 +86,9 @@ class Html5FileSystemDir : public naclfs::FileSystem::Dir {
 namespace naclfs {
 
 pp::FileSystem* Html5FileSystem::filesystem_ = NULL;
+// TODO: Make JavaScript RPC thread safe. We should have a map for objects
+// and requests.
+Html5FileSystem* Html5FileSystem::rpc_object_ = NULL;
 
 Html5FileSystem::Html5FileSystem(NaClFs* naclfs)
     : file_ref_(NULL),
@@ -171,14 +179,30 @@ int Html5FileSystem::StatCall(Arguments* arguments,
 
   if (waiting_) {
     waiting_ = false;
-    // TODO: Queries on directories seem to fail with error code -2.
-    // See, http://crbug.com/132201
+    if (arguments->result.callback == -2) {
+      // TODO: Queries on directories seem to fail with error code -2.
+      // See, http://crbug.com/132201
+      std::stringstream ss;
+      ss << kRpcId << kCmdStat << path;
+      // Request JavaScript to proxy the query.
+      rpc_object_ = this;
+      naclfs_->PostMessage(pp::Var(ss.str()));
+      remoting_ = true;
+      arguments->chaining = true;
+      return 0;
+    }
+
     if (arguments->result.callback != 0)
       return -1;
     querying_ = true;
     file_io_->Query(&file_info_, callback_);
     arguments->chaining = true;
     return 0;
+  }
+
+  if (remoting_) {
+    remoting_ = false;
+    return arguments->result.callback;
   }
 
   if (querying_) {
@@ -368,6 +392,15 @@ int Html5FileSystem::CloseDirCall(Arguments* arguments, DIR* dirp) {
 }
 
 bool Html5FileSystem::HandleMessage(const pp::Var& message) {
+  if (!message.is_string() || !rpc_object_)
+    return false;
+  std::string s = message.AsString();
+  if (s.find(kRpcId) != 0)
+    return false;
+  if (s[kOffCmd] == kCmdStat[0]) {
+    rpc_object_->callback_.Run(s[kOffData] - '0');
+    return true;
+  }
   return false;
 }
 
