@@ -48,15 +48,14 @@ static const char kPortFileSystemPrefix[] = "/dev/std";
 static size_t kPortFileSystemPrefixSize = sizeof(kPortFileSystemPrefix) - 1;
 
 bool FileSystem::Delegate::initialized_ = false;
-pthread_mutex_t FileSystem::Delegate::mutex_;
+sem_t FileSystem::Delegate::sem_;
 pp::Core* FileSystem::Delegate::core_;
 
 FileSystem::Delegate::Delegate() {
   if (initialized_)
     return;
   initialized_ = true;
-  pthread_mutex_init(&mutex_, NULL);
-  Lock();
+  sem_init(&sem_, 0, 0);
   core_ = pp::Module::Get()->core();
 }
 
@@ -202,11 +201,11 @@ int FileSystem::Delegate::CloseDir(DIR* dirp) {
 }
 
 void FileSystem::Delegate::Lock() {
-  pthread_mutex_lock(&mutex_);
+  sem_wait(&sem_);
 }
 
 void FileSystem::Delegate::Unlock() {
-  pthread_mutex_unlock(&mutex_);
+  sem_post(&sem_);
 }
 
 void FileSystem::Delegate::Call(Arguments& arguments) {
@@ -271,6 +270,7 @@ void FileSystem::Delegate::Switch(Arguments* arguments) {
           arguments->delegate->MkDirCall(arguments,
                                          arguments->u.mkdir.path,
                                          arguments->u.mkdir.mode);
+      break;
     case OPENDIR:
       arguments->result.opendir =
           arguments->delegate->OpenDirCall(arguments,
@@ -444,6 +444,9 @@ int FileSystem::CloseDir(DIR* dirp) {
 }
 
 bool FileSystem::HandleMessage(const pp::Var& message) {
+  std::stringstream ss;
+  ss << "HandleMessage: " << message.AsString().c_str();
+  NaClFs::Log(ss.str().c_str());
   bool result = PortFileSystem::HandleMessage(message);
   if (result)
     pthread_mutex_unlock(&NaClFs::GetFileSystem()->mutex_);

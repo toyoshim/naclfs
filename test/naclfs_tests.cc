@@ -119,8 +119,22 @@ class NaClFsTestsInstance: public pp::Instance {
     printf("  st_ctime: %Ld\n", buf.st_ctime);
 
     mkdir("foo_dir", S_IRUSR | S_IWUSR);
-    printf("stat on directory\n");
+    mkdir("bar_dir", S_IRUSR | S_IWUSR);
+    printf("stat on directory which will success\n");
     printf("  result: %d\n", stat("foo_dir", &buf));
+    printf("  st_mode: %o\n", buf.st_mode);
+    printf("  st_size: %Ld\n", buf.st_size);
+    printf("  st_blksize: %u\n", buf.st_blksize);
+    printf("  st_blocks: %d\n", buf.st_blocks);
+    printf("  st_atime: %Ld\n", buf.st_atime);
+    printf("  st_mtime: %Ld\n", buf.st_mtime);
+    printf("  st_ctime: %Ld\n", buf.st_ctime);
+    printf("stat on directory which will fail\n");
+    printf("  result: %d\n", stat("xxx_dir", &buf));
+    printf("  result: %d\n", stat("yyy_dir", &buf));
+    printf("  result: %d\n", stat("zzz_dir", &buf));
+    printf("  result: %d\n", stat("xxx_dir", &buf));
+
     printf("call opendir which will success\n");
     DIR* dir = opendir("foo_dir");
     printf(" dir = %p\n", dir);

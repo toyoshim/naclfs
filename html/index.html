@@ -35,64 +35,9 @@
 
   <script type="text/javascript"
     src="http://terminal-js.googlecode.com/git/term.js"></script>
-  <script type="text/javascript">
-    naclfsTestsModule = null;
-    terminalOut = null;
-    terminalErr = null;
-    terminalLog = null;
-    statusText = 'NO-STATUS';
-
-    function moduleDidLoad() {
-      naclfsTestsModule = document.getElementById('naclfs_tests');
-      updateStatus('SUCCESS');
-    }
-
-    function handleMessage(message_event) {
-      var data = message_event.data;
-      if (!data)
-        return;
-      var type = data[0];
-      switch (type) {
-      case 'E':  // error log
-        terminalLog.appendString(data.slice(1));
-        console.log(data.slice(1));
-        break;
-      case 'S':  // console
-        var id = data[1];
-        if (1 == id) {
-          terminalOut.appendString(data.slice(2));
-        } else if (2 == id) {
-          terminalErr.appendString(data.slice(2));
-        } else
-          console.log("port " + id + ": " + data.slice(2));
-        break;
-      case 'X':  // RPC request
-        document.getElementById('naclfs_tests').postMessage("X5S0");
-        break;
-      default:
-        console.log("unknown message: " + data);
-      }
-    }
-
-    function pageDidLoad() {
-      if (naclfsTestsModule == null) {
-        updateStatus('LOADING...');
-      } else {
-        updateStatus();
-      }
-    }
-
-    function updateStatus(opt_message) {
-      if (opt_message)
-        statusText = opt_message;
-      var statusField = document.getElementById('statusField');
-      if (statusField) {
-        statusField.innerHTML = statusText;
-      }
-    }
-  </script>
+  <script type="text/javascript" src="naclfs.js"></script>
 </head>
-<body onload="pageDidLoad()">
+<body>
 
 <h1>naclfs tests</h1>
 <p>
@@ -107,43 +52,35 @@
              color: white;
              display: inline-block;"></pre>
 
-    <br>
-
-    <pre id="console"
-      style="background-color: black;
-             color: white;
-             display: inline-block;"></pre>
-
-   <script type="text/javascript">
-      var listener = document.getElementById('listener')
-      listener.addEventListener('load', moduleDidLoad, true);
-      listener.addEventListener('message', handleMessage, true);
-
-      terminalOut = new Term('stdout', 80, 25);
+    <script type="text/javascript">
+      var terminalOut = new Term('stdout', 80, 25);
       terminalOut.appendString('STDOUT:\n');
-      terminalErr = new Term('stderr', 80, 25);
+      var terminalErr = new Term('stderr', 80, 25);
       terminalErr.appendString('STDERR:\n');
-      terminalLog = new Term('console', 160, 10);
 
-      document.onkeypress = function (e) {
-        document.getElementById('naclfs_tests').postMessage(
-            'S0' + String.fromCharCode(e.which));
-      }
-      document.onkeydown = function (e) {
-        if (e.which == 8) {
-          document.getElementById('naclfs_tests').postMessage(
-              'S0' + String.fromCharCode(e.which));
-          return false;
-        }
-        return true;
-      }
-      document.onkeyup = function (e) {
-        return false;
-      }
-   </script>
+      moduleDidLoad = function () {
+        document.getElementById('statusField').innerHTML = 'SUCCESS';
+
+        naclfsModule = new naclfs(document.getElementById('naclfs_tests'));
+        naclfsModule.appendStdOut = terminalOut.appendString.bind(terminalOut);
+        naclfsModule.appendStdErr = terminalErr.appendString.bind(terminalErr);
+        naclfsModule.appendConsole = console.log.bind(console);
+
+        document.onkeypress = naclfsModule.onkeypress.bind(naclfsModule);
+        document.onkeydown = naclfsModule.onkeydown.bind(naclfsModule);
+        document.onkeyup = naclfsModule.onkeyup.bind(naclfsModule);
+        document.getElementById('listener').addEventListener(
+            'message', naclfsModule.handleMessage.bind(naclfsModule), true);
+
+
+      };
+      document.getElementById('listener').addEventListener(
+          'load', moduleDidLoad, true);
+
+    </script>
 
     <embed name="nacl_module"
-    id="naclfs_tests"
+           id="naclfs_tests"
            width=0 height=0
            src="naclfs_tests.nmf"
            type="application/x-nacl" />
@@ -152,6 +89,6 @@
 </p>
 
 <h2>Status</h2>
-<div id="statusField">NO-STATUS</div>
+<div id="statusField">LOADING...</div>
 </body>
 </html>

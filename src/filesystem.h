@@ -35,6 +35,7 @@
 
 #include <dirent.h>
 #include <pthread.h>
+#include <semaphore.h>
 #include <stdio.h>
 #include <sys/stat.h>
 
@@ -188,7 +189,7 @@ class FileSystem {
     static void Switch(Arguments* arguments);
 
     static bool initialized_;
-    static pthread_mutex_t mutex_;
+    static sem_t sem_;
     static pp::Core* core_;
   };
 

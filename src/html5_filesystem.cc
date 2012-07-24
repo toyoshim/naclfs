@@ -96,6 +96,7 @@ Html5FileSystem::Html5FileSystem(NaClFs* naclfs)
       naclfs_(naclfs),
       waiting_(false),
       querying_(false),
+      remoting_(false),
       offset_(0) {
 }
 
@@ -184,30 +185,36 @@ int Html5FileSystem::StatCall(Arguments* arguments,
       // See, http://crbug.com/132201
       std::stringstream ss;
       ss << kRpcId << kCmdStat << path;
-      // Request JavaScript to proxy the query.
+      // As a workaround, request JavaScript to proxy the query.
       rpc_object_ = this;
-      naclfs_->PostMessage(pp::Var(ss.str()));
       remoting_ = true;
       arguments->chaining = true;
+      naclfs_->PostMessage(pp::Var(ss.str()));
       return 0;
     }
 
-    if (arguments->result.callback != 0)
+    if (arguments->result.callback)
       return -1;
     querying_ = true;
-    file_io_->Query(&file_info_, callback_);
     arguments->chaining = true;
+    file_io_->Query(&file_info_, callback_);
     return 0;
   }
 
   if (remoting_) {
     remoting_ = false;
+    rpc_object_ = NULL;
+    if (!buf)
+      return 0;
+    memset(buf, 0, sizeof(struct stat));
+    if (!arguments->result.callback)
+      buf->st_mode = S_IRUSR | S_IWUSR | S_IXUSR | S_IFDIR;
     return arguments->result.callback;
   }
 
   if (querying_) {
     querying_ = false;
-    if (arguments->result.callback != 0)
+    if (arguments->result.callback)
       return -1;
     if (NULL == buf)
       return 0;
@@ -238,7 +245,6 @@ int Html5FileSystem::StatCall(Arguments* arguments,
   if (file_io_->Open(*file_ref_, 0, callback_) != PP_OK_COMPLETIONPENDING) {
     naclfs_->Log(
         "Html5FileSystem::Open doesn't return PP_OK_COMPLETIONPENDING\n");
-    waiting_ = false;
     return -1;
   }
   waiting_ = true;
@@ -346,11 +352,26 @@ DIR* Html5FileSystem::OpenDirCall(Arguments* arguments, const char* dirname) {
     Initialize(arguments);
     return NULL;
   }
+  if (remoting_) {
+    rpc_object_ = NULL;
+    remoting_ = false;
+    if (arguments->result.callback)
+      return NULL;
 
-  pp::FileRef file_ref(*filesystem_, dirname);
-  Html5FileSystemDir* dir = new Html5FileSystemDir(this, file_ref);
-  // TODO: Should fail on unexisting path.
-  return reinterpret_cast<DIR*>(dir);
+    pp::FileRef file_ref(*filesystem_, dirname);
+    Html5FileSystemDir* dir = new Html5FileSystemDir(this, file_ref);
+    return reinterpret_cast<DIR*>(dir);
+  }
+
+  // Firstly, check if the directory exists.
+  // TODO: This is a workaround for http://crbug.com/132201
+  std::stringstream ss;
+  ss << kRpcId << kCmdStat << dirname;
+  rpc_object_ = this;
+  remoting_ = true;
+  arguments->chaining = true;
+  naclfs_->PostMessage(pp::Var(ss.str()));
+  return NULL;
 }
 
 void Html5FileSystem::RewindDirCall(Arguments* arguments, DIR* dirp) {
