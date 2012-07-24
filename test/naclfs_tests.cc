@@ -119,6 +119,10 @@ class NaClFsTestsInstance: public pp::Instance {
     printf("  st_ctime: %Ld\n", buf.st_ctime);
 
     mkdir("foo_dir", S_IRUSR | S_IWUSR);
+    out = fopen("foo_dir/hello", "a+");
+    fclose(out);
+    out = fopen("foo_dir/yukarin", "a+");
+    fclose(out);
     mkdir("bar_dir", S_IRUSR | S_IWUSR);
     printf("stat on directory which will success\n");
     printf("  result: %d\n", stat("foo_dir", &buf));
@@ -138,6 +142,12 @@ class NaClFsTestsInstance: public pp::Instance {
     printf("call opendir which will success\n");
     DIR* dir = opendir("foo_dir");
     printf(" dir = %p\n", dir);
+    struct dirent* dirent;
+    while ((dirent = readdir(dir))) {
+      printf("readdir = %p\n", dirent);
+      printf(" d_name = %s\n", dirent->d_name);
+    }
+    closedir(dir);
 
     printf("call opendir which will fail\n");
     dir = opendir("foo");

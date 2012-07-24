@@ -89,6 +89,8 @@ naclfs.prototype._dispatchRPC = function (data) {
   var cmd = data[2];
   if (cmd == 'S')
     this._stat(data.slice(3));
+  else if (cmd == 'D')
+    this._dirlist(data.slice(3));
 };
 
 naclfs.prototype._stat = function (path) {
@@ -103,6 +105,39 @@ naclfs.prototype._stat = function (path) {
   }.bind(this), function () {
     console.info(' => -1');
     this._element.postMessage('X5S/');  // return -1
+  }.bind(this));
+};
+
+naclfs.prototype._dirlist = function (path) {
+  console.info('naclfs rpc: directory list request; path=' + path);
+  if (!naclfs.fs) {
+    console.info(' => -1');
+    this._element.postMessage('X5D_/');  // return -1
+    return;
+  }
+  naclfs.fs.root.getDirectory(path, {}, function (entry) {
+    var reader = entry.createReader();
+    reader.readEntries(function (entries) {
+      for (var i = 0; i < entries.length; ++i) {
+        var entry = entries[i];
+        var rpc = 'X5D';
+        if (entry.isDirectory)
+          rpc += 'D';
+        else if (entry.isFile)
+          rpc += 'F';
+        else
+          rpc += ' ';
+        rpc += entry.name;
+        this._element.postMessage(rpc);
+      }
+      this._element.postMessage('X5D_0');  // return 0
+    }.bind(this), function () {
+      console.info(' => -1');
+      this._element.postMessage('X5D_/');  // return -1
+    }.bind(this));
+  }.bind(this), function () {
+    console.info(' => -1');
+    this._element.postMessage('X5D_/');  // return -1
   }.bind(this));
 };
 

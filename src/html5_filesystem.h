@@ -35,6 +35,8 @@
 
 #include <pthread.h>
 
+#include <vector>
+
 #include "filesystem.h"
 #include "ppapi/c/pp_file_info.h"
 
@@ -88,6 +90,7 @@ class Html5FileSystem : public FileSystem::Delegate {
   bool querying_;
   bool remoting_;
   off_t offset_;
+  std::vector<std::string>* dirent_;
 };
 
 }  // namespace naclfs

@@ -53,22 +53,43 @@ const int kOffCmd = 2;
 const int kOffData = 3;
 const char* const kRpcId = "X5";
 const char* const kCmdStat = "S";
+const char* const kCmdDir = "D";
 
 class Html5FileSystemDir : public naclfs::FileSystem::Dir {
  public:
   Html5FileSystemDir(naclfs::Html5FileSystem* owner,
                      const pp::FileRef& directory_ref)
     : Dir(owner),
-      reader_(new pp::DirectoryReader_Dev(directory_ref)) {}
-  virtual ~Html5FileSystemDir() {}
+      reader_(new pp::DirectoryReader_Dev(directory_ref)),
+      entries_(NULL),
+      offset_(0) {}
+  virtual ~Html5FileSystemDir() {
+    delete reader_;
+    if (entries_)
+      delete entries_;
+  }
+
+  void SetEntries(std::vector<std::string>* entries) {
+    entries_ = entries;
+    offset_ = 0;
+  }
 
   int32_t ReadDir(const pp::CompletionCallback& cc) {
+    if (entries_)
+      return PP_OK;
     return reader_->GetNextEntry(&entry_, cc);
   }
 
   struct dirent* ReadDirComplete() {
     memset(&dirent_, 0, sizeof(struct dirent));
-    std::string name = entry_.file_ref().GetName().AsString();
+    std::string name;
+    if (entries_) {
+      if (entries_->size() == offset_)
+        return NULL;
+      name = (*entries_)[offset_++].substr(1);
+    } else {
+      name = entry_.file_ref().GetName().AsString();
+    }
     strncpy(dirent_.d_name, name.c_str(), 256);
     if (name.length() > 255)
       dirent_.d_name[255] = 0;
@@ -79,6 +100,8 @@ class Html5FileSystemDir : public naclfs::FileSystem::Dir {
   pp::DirectoryReader_Dev* reader_;
   pp::DirectoryEntry_Dev entry_;
   struct dirent dirent_;
+  std::vector<std::string>* entries_;
+  size_t offset_;
 };
 
 };  // namespace
@@ -355,21 +378,30 @@ DIR* Html5FileSystem::OpenDirCall(Arguments* arguments, const char* dirname) {
   if (remoting_) {
     rpc_object_ = NULL;
     remoting_ = false;
-    if (arguments->result.callback)
+    if (arguments->result.callback) {
+      delete dirent_;
+      dirent_ = NULL;
       return NULL;
+    }
 
     pp::FileRef file_ref(*filesystem_, dirname);
     Html5FileSystemDir* dir = new Html5FileSystemDir(this, file_ref);
+    if (dir)
+      dir->SetEntries(dirent_);
+    else
+      delete dirent_;
+    dirent_ = NULL;
     return reinterpret_cast<DIR*>(dir);
   }
 
   // Firstly, check if the directory exists.
   // TODO: This is a workaround for http://crbug.com/132201
   std::stringstream ss;
-  ss << kRpcId << kCmdStat << dirname;
+  ss << kRpcId << kCmdDir << dirname;
   rpc_object_ = this;
   remoting_ = true;
   arguments->chaining = true;
+  dirent_ = new std::vector<std::string>();
   naclfs_->PostMessage(pp::Var(ss.str()));
   return NULL;
 }
@@ -385,31 +417,39 @@ struct dirent* Html5FileSystem::ReadDirCall(Arguments* arguments, DIR* dirp) {
 
   if (waiting_) {
     waiting_ = false;
-    if (arguments->result.callback != 0) {
+    if (arguments->result.callback) {
       // TODO: Oops, DirectoryReader doesn't work in NaCl yet.
       // See, http://crbug.com/106129
       std::stringstream ss;
       ss << "Html5FileSystem::ReadDir failed with error code " <<
-          arguments->result.callback << "\n";
+          arguments->result.callback << std::endl;
       naclfs_->Log(ss.str().c_str());
       return NULL;
     }
     return dir->ReadDirComplete();
   }
 
-  if (dir->ReadDir(callback_) != PP_OK_COMPLETIONPENDING) {
-    naclfs_->Log(
-        "Html5FileSystem::ReadDir doesn't return PP_OK_COMPLETIONPENDING\n");
-    return NULL;
+  int result = dir->ReadDir(callback_);
+  if (result == PP_OK)
+    return dir->ReadDirComplete();
+
+  if (result == PP_OK_COMPLETIONPENDING) {
+    waiting_ = true;
+    arguments->chaining = true;
   }
-  waiting_ = true;
-  arguments->chaining = true;
+
+  naclfs_->Log(
+      "Html5FileSystem::ReadDir doesn't return PP_OK_COMPLETIONPENDING\n");
   return NULL;
 }
 
 int Html5FileSystem::CloseDirCall(Arguments* arguments, DIR* dirp) {
-  // TODO
-  return -1;
+  Html5FileSystemDir* dir = reinterpret_cast<Html5FileSystemDir*>(dirp);
+  if (!dir)
+    return -1;
+
+  delete dir;
+  return 0;
 }
 
 bool Html5FileSystem::HandleMessage(const pp::Var& message) {
@@ -420,6 +460,14 @@ bool Html5FileSystem::HandleMessage(const pp::Var& message) {
     return false;
   if (s[kOffCmd] == kCmdStat[0]) {
     rpc_object_->callback_.Run(s[kOffData] - '0');
+    return true;
+  } else if (s[kOffCmd] == kCmdDir[0]) {
+    if (s[kOffData] != '_') {
+      if (rpc_object_->dirent_)
+        rpc_object_->dirent_->push_back(s.substr(kOffData));
+    } else {
+      rpc_object_->callback_.Run(s[kOffData + 1] - '0');
+    }
     return true;
   }
   return false;
