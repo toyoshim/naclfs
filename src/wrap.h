@@ -44,6 +44,7 @@ extern "C" {
 # endif  // defined(__cplusplus)
 
 int __wrap_fcntl(int fildes, int cmd, ...);
+int __wrap_mkdir(const char* path, mode_t mode);
 DIR* __wrap_opendir(const char* dirname);
 void __wrap_rewinddir(DIR* dirp);
 struct dirent* __wrap_readdir(DIR* dirp);

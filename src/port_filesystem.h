@@ -52,12 +52,13 @@ class PortFileSystem : public FileSystem::Delegate {
   PortFileSystem(NaClFs* naclfs);
   virtual ~PortFileSystem();
   virtual int Open(const char* path, int oflag, ...);
+  virtual int Stat(const char* path, struct stat* buf) { return -1; }
+  virtual int Close();
   virtual ssize_t Read(void* buf, size_t nbytes);
   virtual ssize_t Write(const void* buf, size_t nbytes);
-  virtual off_t Lseek(off_t offset, int whence);
+  virtual off_t Seek(off_t offset, int whence);
   virtual int Fcntl(int cmd, ...);
-  virtual int Close();
-  virtual int Stat(const char* path, struct stat* buf);
+  virtual int MkDir(const char* path, mode_t mode) { return -1; }
   virtual DIR* OpenDir(const char* dirname) { return NULL; }
   virtual void RewindDir(DIR* dirp) {}
   virtual struct dirent* ReadDir(DIR* dirp) { return NULL; }

@@ -64,23 +64,33 @@ int PortFileSystem::Open(const char* path, int oflag, ...) {
     id_ = STDIN_FILENO;
     readable_ = true;
     if (oflag != O_RDONLY)
-      naclfs_->Log("PortFileSystem: ignore oflag which doesn't match for stdin.\n");
+      naclfs_->Log(
+          "PortFileSystem: ignore oflag which doesn't match for stdin.\n");
   } else if (strcmp(path, kStdOutPath) == 0) {
     id_ = STDOUT_FILENO;
     writable_ = true;
     if (oflag != O_WRONLY)
-      naclfs_->Log("PortFileSystem: ignore oflag which doesn't match for stdout.\n");
+      naclfs_->Log(
+          "PortFileSystem: ignore oflag which doesn't match for stdout.\n");
   } else if (strcmp(path, kStdErrPath) == 0) {
     id_ = STDERR_FILENO;
     writable_ = true;
     if (oflag != O_WRONLY)
-      naclfs_->Log("PortFileSystem: ignore oflag which doesn't match for stderr.\n");
+      naclfs_->Log(
+          "PortFileSystem: ignore oflag which doesn't match for stderr.\n");
   } else {
     std::stringstream ss;
-    ss << "PortFileSystem: can not open unknown device name: " << path << std::endl;
+    ss << "PortFileSystem: can not open unknown device name: " << path
+       << std::endl;
     naclfs_->Log(ss.str().c_str());
     return -1;
   }
+  return 0;
+}
+
+int PortFileSystem::Close() {
+  if (id_ < 0)
+    return -1;
   return 0;
 }
 
@@ -112,8 +122,8 @@ ssize_t PortFileSystem::Write(const void* buf, size_t nbytes) {
   return nbytes;
 }
 
-off_t PortFileSystem::Lseek(off_t offset, int whence) {
-  naclfs_->Log("PortFileSystem::Lseek not supported.\n");
+off_t PortFileSystem::Seek(off_t offset, int whence) {
+  naclfs_->Log("PortFileSystem::Seek not supported.\n");
   return -1;
 }
 
@@ -136,17 +146,6 @@ int PortFileSystem::Fcntl(int cmd, ...) {
   return -1;
 }
 
-int PortFileSystem::Close() {
-  if (id_ < 0)
-    return -1;
-  return 0;
-}
-
-int PortFileSystem::Stat(const char* path, struct stat* buf) {
-  // TODO
-  return -1;
-}
-
 bool PortFileSystem::HandleMessage(const pp::Var& message) {
   if (!message.is_string())
     return false;
@@ -158,4 +157,3 @@ bool PortFileSystem::HandleMessage(const pp::Var& message) {
 }
 
 }  // namespace naclfs
-

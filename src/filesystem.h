@@ -60,12 +60,13 @@ class FileSystem {
    protected:
     enum Function {
       OPEN,
+      STAT,
+      CLOSE,
       READ,
       WRITE,
-      LSEEK,
+      SEEK,
       FCNTL,
-      CLOSE,
-      STAT,
+      MKDIR,
       OPENDIR,
       REWINDDIR,
       READDIR,
@@ -81,6 +82,10 @@ class FileSystem {
           int oflag;
         } open;
         struct {
+          const char* path;
+          struct stat* buf;
+       	} stat;
+        struct {
           void* buf;
           size_t nbytes;
         } read;
@@ -91,79 +96,84 @@ class FileSystem {
         struct {
           off_t offset;
           int whence;
-        } lseek;
+        } seek;
         struct {
           int cmd;
           int arg1;
         } fcntl;
-	struct {
-	  const char* path;
-	  struct stat* buf;
-	} stat;
-	struct {
-	  const char* dirname;
-	} opendir;
-	struct {
-	  DIR* dirp;
-	} rewinddir;
-	struct {
-	  DIR* dirp;
-	} readdir;
-	struct {
-	  DIR* dirp;
-	} closedir;
+        struct {
+          const char* path;
+          mode_t mode;
+        } mkdir;
+        struct {
+          const char* dirname;
+        } opendir;
+        struct {
+          DIR* dirp;
+        } rewinddir;
+        struct {
+          DIR* dirp;
+        } readdir;
+        struct {
+          DIR* dirp;
+        } closedir;
       } u;
       union {
         int32_t callback;
         int open;
+        int stat;
+        int close;
         ssize_t read;
         ssize_t write;
-        off_t lseek;
+        off_t seek;
         int fcntl;
-        int close;
-	int stat;
-	DIR* opendir;
-	struct dirent* readdir;
-	int closedir;
+        int mkdir;
+        DIR* opendir;
+        struct dirent* readdir;
+        int closedir;
       } result;
     } Arguments;
 
    public:
     Delegate();
     virtual int Open(const char* path, int oflag, ...);
+    virtual int Stat(const char* path, struct stat* buf);
+    virtual int Close();
     virtual ssize_t Read(void* buf, size_t nbytes);
     virtual ssize_t Write(const void* buf, size_t nbytes);
-    virtual off_t Lseek(off_t offset, int whence);
+    virtual off_t Seek(off_t offset, int whence);
     virtual int Fcntl(int cmd, ...);
-    virtual int Close();
-    virtual int Stat(const char* path, struct stat* buf);
+    virtual int MkDir(const char* path, mode_t mode);
     virtual DIR* OpenDir(const char* dirname);
     virtual void RewindDir(DIR* dirp);
     virtual struct dirent* ReadDir(DIR* dirp);
     virtual int CloseDir(DIR* dirp);
 
     virtual int OpenCall(Arguments* arguments,
-			 const char* path,
-			 int oflag, ...) { return -1; }
-    virtual ssize_t ReadCall(Arguments* arguments,
-			     void* buf,
-			     size_t nbytes) { return -1; }
-    virtual ssize_t WriteCall(Arguments* arguments,
-			      const void* buf,
-			      size_t nbytes) { return -1; }
-    virtual off_t LseekCall(Arguments* arguments,
-			    off_t offset,
-			    int whence) { return -1; }
-    virtual int FcntlCall(Arguments* arguments, int cmd, ...) { return -1; }
-    virtual int CloseCall(Arguments* arguments) { return -1; }
+                         const char* path,
+                         int oflag, ...) { return -1; }
     virtual int StatCall(Arguments* arguments,
-			 const char* path,
-			 struct stat* buf) { return -1; }
+                         const char* path,
+                         struct stat* buf) { return -1; }
+    virtual int CloseCall(Arguments* arguments) { return -1; }
+    virtual ssize_t ReadCall(Arguments* arguments,
+                             void* buf,
+                             size_t nbytes) { return -1; }
+    virtual ssize_t WriteCall(Arguments* arguments,
+                              const void* buf,
+                              size_t nbytes) { return -1; }
+    virtual off_t SeekCall(Arguments* arguments,
+                           off_t offset,
+                           int whence) { return -1; }
+    virtual int FcntlCall(Arguments* arguments, int cmd, ...) { return -1; }
+    virtual int MkDirCall(Arguments* arguments,
+                          const char* path,
+                          mode_t mode) { return -1; }
     virtual DIR* OpenDirCall(Arguments* arguments,
-			     const char* dirname) { return NULL; }
+                             const char* dirname) { return NULL; }
     virtual void RewindDirCall(Arguments* arguments, DIR* dirp) {}
     virtual struct dirent* ReadDirCall(Arguments* arguments,
-				       DIR* dirp) { return NULL; }
+                                       DIR* dirp) { return NULL; }
     virtual int CloseDirCall(Arguments* arguments, DIR* dirp) { return -1; }
 
    protected:
@@ -197,12 +207,13 @@ class FileSystem {
   ~FileSystem();
 
   int Open(const char* path, int oflag, ...);
+  int Stat(const char* path, struct stat* buf);
+  int Close(int fildes);
   ssize_t Read(int fildes, void* buf, size_t nbytes);
   ssize_t Write(int fildes, const void* buf, size_t nbytes);
-  off_t Lseek(int fildes, off_t offset, int whence);
+  off_t Seek(int fildes, off_t offset, int whence);
   int Fcntl(int fildes, int cmd, ...);
-  int Close(int fildes);
-  int Stat(const char* path, struct stat* buf);
+  int MkDir(const char* path, mode_t mode);
   DIR* OpenDir(const char* dirname);
   void RewindDir(DIR* dirp);
   struct dirent* ReadDir(DIR* dirp);

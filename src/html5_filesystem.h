@@ -57,14 +57,17 @@ class Html5FileSystem : public FileSystem::Delegate {
   virtual ~Html5FileSystem();
 
   virtual int OpenCall(Arguments* arguments, const char* path, int oflag, ...);
-  virtual ssize_t ReadCall(Arguments* arguments, void* buf, size_t nbytes);
-  virtual ssize_t WriteCall(
-      Arguments* arguments, const void* buf, size_t nbytes);
-  virtual off_t LseekCall(Arguments* arguments, off_t offset, int whence);
-  virtual int FcntlCall(Arguments* arguments, int cmd, ...);
+  virtual int StatCall(Arguments* arguments,
+                       const char* path,
+                       struct stat* buf);
   virtual int CloseCall(Arguments* arguments);
-  virtual int StatCall(
-      Arguments* arguments, const char* path, struct stat* buf);
+  virtual ssize_t ReadCall(Arguments* arguments, void* buf, size_t nbytes);
+  virtual ssize_t WriteCall(Arguments* arguments,
+                            const void* buf,
+                            size_t nbytes);
+  virtual off_t SeekCall(Arguments* arguments, off_t offset, int whence);
+  virtual int FcntlCall(Arguments* arguments, int cmd, ...);
+  virtual int MkDirCall(Arguments* arguments, const char* path, mode_t mode);
   virtual DIR* OpenDirCall(Arguments* arguments, const char* dirname);
   virtual void RewindDirCall(Arguments* arguments, DIR* dirp);
   virtual struct dirent* ReadDirCall(Arguments* arguments, DIR* dirp);

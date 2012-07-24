@@ -6,6 +6,7 @@ function _wrap() {
 
 function libs() {
   _wrap "fcntl"
+  _wrap "mkdir"
   _wrap "opendir"
   _wrap "rewinddir"
   _wrap "readdir"

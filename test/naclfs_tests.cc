@@ -118,8 +118,15 @@ class NaClFsTestsInstance: public pp::Instance {
     printf("  st_mtime: %Ld\n", buf.st_mtime);
     printf("  st_ctime: %Ld\n", buf.st_ctime);
 
+    mkdir("foo_dir", S_IRUSR | S_IWUSR);
+    printf("stat on directory\n");
+    printf("  result: %d\n", stat("foo_dir", &buf));
+    printf("call opendir which will success\n");
+    DIR* dir = opendir("foo_dir");
+    printf(" dir = %p\n", dir);
+
     printf("call opendir which will fail\n");
-    DIR* dir = opendir("foo");
+    dir = opendir("foo");
     printf(" dir = %p\n", dir);
 
     self->naclfs_->Log("start echo\n");

@@ -72,6 +72,28 @@ int FileSystem::Delegate::Open(const char* path, int oflag, ...) {
   return arguments.result.open;
 }
 
+int FileSystem::Delegate::Stat(const char* path, struct stat* buf) {
+  if (core_->IsMainThread())
+    return -1;
+  Arguments arguments;
+  arguments.delegate = this;
+  arguments.function = STAT;
+  arguments.u.stat.path = path;
+  arguments.u.stat.buf = buf;
+  Call(arguments);
+  return arguments.result.stat;
+}
+
+int FileSystem::Delegate::Close() {
+  if (core_->IsMainThread())
+    return -1;
+  Arguments arguments;
+  arguments.delegate = this;
+  arguments.function = CLOSE;
+  Call(arguments);
+  return arguments.result.close;
+}
+
 ssize_t FileSystem::Delegate::Read(void* buf, size_t nbytes) {
   if (core_->IsMainThread())
     return -1;
@@ -96,16 +118,16 @@ ssize_t FileSystem::Delegate::Write(const void* buf, size_t nbytes) {
   return arguments.result.write;
 }
 
-off_t FileSystem::Delegate::Lseek(off_t offset, int whence) {
+off_t FileSystem::Delegate::Seek(off_t offset, int whence) {
   if (core_->IsMainThread())
     return -1;
   Arguments arguments;
   arguments.delegate = this;
-  arguments.function = LSEEK;
-  arguments.u.lseek.offset = offset;
-  arguments.u.lseek.whence = whence;
+  arguments.function = SEEK;
+  arguments.u.seek.offset = offset;
+  arguments.u.seek.whence = whence;
   Call(arguments);
-  return arguments.result.lseek;
+  return arguments.result.seek;
 }
 
 int FileSystem::Delegate::Fcntl(int cmd, ...) {
@@ -124,26 +146,16 @@ int FileSystem::Delegate::Fcntl(int cmd, ...) {
   return arguments.result.fcntl;
 }
 
-int FileSystem::Delegate::Close() {
+int FileSystem::Delegate::MkDir(const char* path, mode_t mode) {
   if (core_->IsMainThread())
-    return -1;
+    return NULL;
   Arguments arguments;
   arguments.delegate = this;
-  arguments.function = CLOSE;
+  arguments.function = MKDIR;
+  arguments.u.mkdir.path = path;
+  arguments.u.mkdir.mode = mode;
   Call(arguments);
-  return arguments.result.close;
-}
-
-int FileSystem::Delegate::Stat(const char* path, struct stat* buf) {
-  if (core_->IsMainThread())
-    return -1;
-  Arguments arguments;
-  arguments.delegate = this;
-  arguments.function = STAT;
-  arguments.u.stat.path = path;
-  arguments.u.stat.buf = buf;
-  Call(arguments);
-  return arguments.result.stat;
+  return arguments.result.mkdir;
 }
 
 DIR* FileSystem::Delegate::OpenDir(const char* dirname) {
@@ -220,6 +232,16 @@ void FileSystem::Delegate::Switch(Arguments* arguments) {
                                         arguments->u.open.path,
                                         arguments->u.open.oflag);
       break;
+    case STAT:
+      arguments->result.stat =
+          arguments->delegate->StatCall(arguments,
+                                        arguments->u.stat.path,
+                                        arguments->u.stat.buf);
+      break;
+    case CLOSE:
+      arguments->result.close =
+          arguments->delegate->CloseCall(arguments);
+      break;
     case READ:
       arguments->result.read =
           arguments->delegate->ReadCall(arguments,
@@ -232,11 +254,11 @@ void FileSystem::Delegate::Switch(Arguments* arguments) {
                                          arguments->u.write.buf,
                                          arguments->u.write.nbytes);
       break;
-    case LSEEK:
-      arguments->result.lseek =
-          arguments->delegate->LseekCall(arguments,
-                                         arguments->u.lseek.offset,
-                                         arguments->u.lseek.whence);
+    case SEEK:
+      arguments->result.seek =
+          arguments->delegate->SeekCall(arguments,
+                                        arguments->u.seek.offset,
+                                        arguments->u.seek.whence);
       break;
     case FCNTL:
       arguments->result.fcntl =
@@ -244,34 +266,29 @@ void FileSystem::Delegate::Switch(Arguments* arguments) {
                                          arguments->u.fcntl.cmd,
                                          arguments->u.fcntl.arg1);
       break;
-    case CLOSE:
-      arguments->result.close =
-          arguments->delegate->CloseCall(arguments);
-      break;
-    case STAT:
-      arguments->result.stat =
-	  arguments->delegate->StatCall(arguments,
-					arguments->u.stat.path,
-					arguments->u.stat.buf);
-      break;
+    case MKDIR:
+      arguments->result.mkdir =
+          arguments->delegate->MkDirCall(arguments,
+                                         arguments->u.mkdir.path,
+                                         arguments->u.mkdir.mode);
     case OPENDIR:
       arguments->result.opendir =
-	  arguments->delegate->OpenDirCall(arguments,
-					   arguments->u.opendir.dirname);
+          arguments->delegate->OpenDirCall(arguments,
+                                           arguments->u.opendir.dirname);
       break;
     case REWINDDIR:
       arguments->delegate->RewindDirCall(arguments,
-					 arguments->u.rewinddir.dirp);
+                                         arguments->u.rewinddir.dirp);
       break;
     case READDIR:
       arguments->result.readdir =
-	  arguments->delegate->ReadDirCall(arguments,
-					   arguments->u.readdir.dirp);
+          arguments->delegate->ReadDirCall(arguments,
+                                           arguments->u.readdir.dirp);
       break;
     case CLOSEDIR:
       arguments->result.closedir =
-	arguments->delegate->CloseDirCall(arguments,
-					  arguments->u.closedir.dirp);
+          arguments->delegate->CloseDirCall(arguments,
+                                            arguments->u.closedir.dirp);
       break;
   }
 }
@@ -305,6 +322,32 @@ int FileSystem::Open(const char* path, int oflag, ...) {
   return BindToDescriptor(delegate);
 }
 
+int FileSystem::Stat(const char* path, struct stat* buf) {
+  if (!path)
+    return -1;
+  std::string fullpath;
+  CreateFullpath(path, &fullpath);
+  Delegate* delegate = CreateDelegate(fullpath.c_str());
+  if (!delegate) {
+    naclfs_->Log("FileSystem: can not create delegate\n");
+    return -1;
+  }
+  int result = delegate->Stat(fullpath.c_str(), buf);
+  delete delegate;
+  return result;
+}
+
+int FileSystem::Close(int fildes) {
+  Delegate* delegate = GetDelegate(fildes);
+  if (!delegate)
+    return -1;
+  int result = delegate->Close();
+  if (result != 0)
+    return result;
+  DeleteDescriptor(fildes);
+  return result;
+}
+
 ssize_t FileSystem::Read(int fildes, void* buf, size_t nbytes) {
   Delegate* delegate = GetDelegate(fildes);
   if (!delegate)
@@ -327,11 +370,11 @@ ssize_t FileSystem::Write(int fildes, const void* buf, size_t nbytes) {
   return delegate->Write(buf, nbytes);
 }
 
-off_t FileSystem::Lseek(int fildes, off_t offset, int whence) {
+off_t FileSystem::Seek(int fildes, off_t offset, int whence) {
   Delegate* delegate = GetDelegate(fildes);
   if (!delegate)
     return -1;
-  return delegate->Lseek(offset, whence);
+  return delegate->Seek(offset, whence);
 }
 
 int FileSystem::Fcntl(int fildes, int cmd, ...) {
@@ -345,18 +388,7 @@ int FileSystem::Fcntl(int fildes, int cmd, ...) {
   return delegate->Fcntl(cmd, arg1);
 }
 
-int FileSystem::Close(int fildes) {
-  Delegate* delegate = GetDelegate(fildes);
-  if (!delegate)
-    return -1;
-  int result = delegate->Close();
-  if (result != 0)
-    return result;
-  DeleteDescriptor(fildes);
-  return result;
-}
-
-int FileSystem::Stat(const char* path, struct stat* buf) {
+int FileSystem::MkDir(const char* path, mode_t mode) {
   if (!path)
     return -1;
   std::string fullpath;
@@ -366,7 +398,7 @@ int FileSystem::Stat(const char* path, struct stat* buf) {
     naclfs_->Log("FileSystem: can not create delegate\n");
     return -1;
   }
-  int result = delegate->Stat(fullpath.c_str(), buf);
+  int result = delegate->MkDir(fullpath.c_str(), mode);
   delete delegate;
   return result;
 }
@@ -453,4 +485,3 @@ void FileSystem::DeleteDescriptor(int fildes) {
 }
 
 }  // namespace naclfs
-

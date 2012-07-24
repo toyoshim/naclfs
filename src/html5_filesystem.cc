@@ -163,79 +163,6 @@ int Html5FileSystem::OpenCall(Arguments* arguments,
   return 0;
 }
 
-ssize_t Html5FileSystem::ReadCall(Arguments* arguments,
-                                  void* buf,
-                                  size_t nbytes) {
-  if (waiting_) {
-    waiting_ = false;
-    if (0 == arguments->result.callback)
-      return EOF;
-    offset_ += arguments->result.callback;
-    return arguments->result.callback;
-  }
-
-  if (file_io_->Read(offset_, static_cast<char*>(buf), nbytes, callback_) !=
-      PP_OK_COMPLETIONPENDING) {
-    naclfs_->Log(
-        "Html5FileSystem::Read doesn't return PP_OK_COMPLETIONPENDING\n");
-    return -1;
-  }
-  waiting_ = true;
-  arguments->chaining = true;
-  return 0;
-}
-
-ssize_t Html5FileSystem::WriteCall(Arguments* arguments,
-                                   const void* buf,
-                                   size_t nbytes) {
-  if (waiting_) {
-    waiting_ = false;
-    offset_ += arguments->result.callback;
-    return arguments->result.callback;
-  }
-
-  if (file_io_->Write(
-          offset_, static_cast<const char*>(buf), nbytes, callback_) !=
-      PP_OK_COMPLETIONPENDING) {
-    naclfs_->Log(
-        "Html5FileSystem::Write doesn't return PP_OK_COMPLETIONPENDING\n");
-    return -1;
-  }
-  waiting_ = true;
-  arguments->chaining = true;
-  return 0;
-}
-
-off_t Html5FileSystem::LseekCall(Arguments* arguments,
-                                 off_t offset,
-                                 int whence) {
-  switch (whence) {
-    case SEEK_SET:
-      offset_ = offset;
-      break;
-    case SEEK_CUR:
-      offset_ += offset;
-      break;
-    case SEEK_END:
-      offset_ = file_info_.size + offset;
-      break;
-    default:
-      naclfs_->Log("Html5FileSystem::Lseek invalid whence\n");
-      return -1;
-  }
-  return offset_;
-}
-
-int Html5FileSystem::FcntlCall(Arguments* arguments, int cmd, ...) {
-  naclfs_->Log("Html5FileSystem::Fcntl not supported\n");
-  return -1;
-}
-
-int Html5FileSystem::CloseCall(Arguments* arguments) {
-  file_io_->Close();
-  return 0;
-}
-
 int Html5FileSystem::StatCall(Arguments* arguments,
                               const char* path,
                               struct stat* buf) {
@@ -288,6 +215,101 @@ int Html5FileSystem::StatCall(Arguments* arguments,
     naclfs_->Log(
         "Html5FileSystem::Open doesn't return PP_OK_COMPLETIONPENDING\n");
     waiting_ = false;
+    return -1;
+  }
+  waiting_ = true;
+  arguments->chaining = true;
+  return 0;
+}
+
+int Html5FileSystem::CloseCall(Arguments* arguments) {
+  file_io_->Close();
+  return 0;
+}
+
+ssize_t Html5FileSystem::ReadCall(Arguments* arguments,
+                                  void* buf,
+                                  size_t nbytes) {
+  if (waiting_) {
+    waiting_ = false;
+    if (0 == arguments->result.callback)
+      return EOF;
+    offset_ += arguments->result.callback;
+    return arguments->result.callback;
+  }
+
+  if (file_io_->Read(offset_, static_cast<char*>(buf), nbytes, callback_) !=
+      PP_OK_COMPLETIONPENDING) {
+    naclfs_->Log(
+        "Html5FileSystem::Read doesn't return PP_OK_COMPLETIONPENDING\n");
+    return -1;
+  }
+  waiting_ = true;
+  arguments->chaining = true;
+  return 0;
+}
+
+ssize_t Html5FileSystem::WriteCall(Arguments* arguments,
+                                   const void* buf,
+                                   size_t nbytes) {
+  if (waiting_) {
+    waiting_ = false;
+    offset_ += arguments->result.callback;
+    return arguments->result.callback;
+  }
+
+  if (file_io_->Write(
+          offset_, static_cast<const char*>(buf), nbytes, callback_) !=
+      PP_OK_COMPLETIONPENDING) {
+    naclfs_->Log(
+        "Html5FileSystem::Write doesn't return PP_OK_COMPLETIONPENDING\n");
+    return -1;
+  }
+  waiting_ = true;
+  arguments->chaining = true;
+  return 0;
+}
+
+off_t Html5FileSystem::SeekCall(Arguments* arguments,
+                                off_t offset,
+                                int whence) {
+  switch (whence) {
+    case SEEK_SET:
+      offset_ = offset;
+      break;
+    case SEEK_CUR:
+      offset_ += offset;
+      break;
+    case SEEK_END:
+      offset_ = file_info_.size + offset;
+      break;
+    default:
+      naclfs_->Log("Html5FileSystem::Seek invalid whence\n");
+      return -1;
+  }
+  return offset_;
+}
+
+int Html5FileSystem::FcntlCall(Arguments* arguments, int cmd, ...) {
+  naclfs_->Log("Html5FileSystem::Fcntl not supported\n");
+  return -1;
+}
+
+int Html5FileSystem::MkDirCall(Arguments* arguments,
+                               const char* path,
+                               mode_t mode) {
+  if (!filesystem_)
+    return Initialize(arguments);
+
+  if (waiting_) {
+    waiting_ = false;
+    return arguments->result.callback;
+  }
+
+  pp::FileRef file_ref(*filesystem_, path);
+  if (file_ref.MakeDirectory(callback_) != PP_OK_COMPLETIONPENDING) {
+    naclfs_->Log(
+        "Html5FileSystem::MkDir doesn't return PP_OK_COMPLETIONPENDING\n");
     return -1;
   }
   waiting_ = true;
