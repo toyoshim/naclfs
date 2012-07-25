@@ -96,6 +96,10 @@ class Html5FileSystemDir : public naclfs::FileSystem::Dir {
     return &dirent_;
   }
 
+  void Rewind() {
+    offset_ = 0;
+  }
+
  private:
   pp::DirectoryReader_Dev* reader_;
   pp::DirectoryEntry_Dev entry_;
@@ -407,7 +411,10 @@ DIR* Html5FileSystem::OpenDirCall(Arguments* arguments, const char* dirname) {
 }
 
 void Html5FileSystem::RewindDirCall(Arguments* arguments, DIR* dirp) {
-  // TODO
+  Html5FileSystemDir* dir = reinterpret_cast<Html5FileSystemDir*>(dirp);
+  if (!dir)
+    return;
+  dir->Rewind();
 }
 
 struct dirent* Html5FileSystem::ReadDirCall(Arguments* arguments, DIR* dirp) {
