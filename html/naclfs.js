@@ -29,6 +29,12 @@
  * DAMAGE.
  */
 
+function naclfs (element) {
+  this._element = element;
+  this._out_buffer = '';
+  this._err_buffer = '';
+}
+
 naclfs.prototype.handleMessage = function (message_event) {
   var data = message_event.data;
   if (!data)
@@ -58,11 +64,19 @@ naclfs.prototype.appendConsole = function (message) {
 };
 
 naclfs.prototype.appendStdOut = function (message) {
-  // Do nothing.
+  this._out_buffer += message;
+  var lines = this._out_buffer.split('\n');
+  for (var i = 0; i < (lines.length - 1); ++i)
+    console.warn(lines[i]);
+  this._out_buffer = lines[i];
 };
 
 naclfs.prototype.appendStdErr = function (message) {
-  // Do nothing.
+  this._err_buffer += message;
+  var lines = this._err_buffer.split('\n');
+  for (var i = 0; i < (lines.length - 1); ++i)
+    console.error(lines[i]);
+  this._err_buffer = lines[i];
 };
 
 naclfs.prototype.onkeypress = function (e) {
@@ -148,8 +162,4 @@ window.webkitRequestFileSystem(window.TEMPORARY, 1024 * 1024, function (fs) {
 }, function () {
   console.error("RequestFileSystem failed");
 });
-
-function naclfs (element) {
-  this._element = element;
-}
 
