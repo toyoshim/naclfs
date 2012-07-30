@@ -207,8 +207,9 @@ int Html5FileSystem::StatCall(Arguments* arguments,
 
   if (waiting_) {
     waiting_ = false;
-    if (arguments->result.callback == -2) {
+    if (arguments->result.callback == -2 || arguments->result.callback == -5) {
       // TODO: Queries on directories seem to fail with error code -2.
+      // Queries on a path containing '../' seem to fail with error code -5.
       // See, http://crbug.com/132201
       std::stringstream ss;
       ss << kRpcId << kCmdStat << path;
