@@ -61,14 +61,17 @@ FileSystem::Delegate::Delegate() {
   core_ = pp::Module::Get()->core();
 }
 
-int FileSystem::Delegate::Open(const char* path, int oflag, ...) {
+int FileSystem::Delegate::Open(const char* path,
+                               int oflag,
+                               mode_t cmode) {
   if (core_->IsMainThread())
-    return -1;
+    return EACCES;
   Arguments arguments;
   arguments.delegate = this;
   arguments.function = OPEN;
   arguments.u.open.path = path;
   arguments.u.open.oflag = oflag;
+  arguments.u.open.cmode = cmode;
   Call(arguments);
   return arguments.result.open;
 }
@@ -231,7 +234,8 @@ void FileSystem::Delegate::Switch(Arguments* arguments) {
       arguments->result.open =
           arguments->delegate->OpenCall(arguments,
                                         arguments->u.open.path,
-                                        arguments->u.open.oflag);
+                                        arguments->u.open.oflag,
+                                        arguments->u.open.cmode);
       break;
     case STAT:
       arguments->result.stat =
@@ -308,22 +312,23 @@ FileSystem::~FileSystem() {
   pthread_mutex_destroy(&mutex_);
 }
 
-int FileSystem::Open(const char* path, int oflag, ...) {
+int FileSystem::Open(const char* path, int oflag, mode_t cmode, int* newfd) {
   if (!path)
-    return -1;
+    return EFAULT;
   std::string fullpath;
   CreateFullpath(path, &fullpath);
   Delegate* delegate = CreateDelegate(fullpath.c_str());
   if (!delegate) {
     naclfs_->Log("FileSystem: can not create delegate\n");
-    return -1;
+    return ENODEV;
   }
-  int result = delegate->Open(fullpath.c_str(), oflag);
-  if (result < 0) {
+  int result = delegate->Open(fullpath.c_str(), oflag, cmode);
+  if (result) {
     delete delegate;
     return result;
   }
-  return BindToDescriptor(delegate);
+  *newfd = BindToDescriptor(delegate);
+  return 0;
 }
 
 int FileSystem::Stat(const char* path, struct stat* buf) {

@@ -58,7 +58,10 @@ class Html5FileSystem : public FileSystem::Delegate {
   Html5FileSystem(NaClFs* naclfs);
   virtual ~Html5FileSystem();
 
-  virtual int OpenCall(Arguments* arguments, const char* path, int oflag, ...);
+  virtual int OpenCall(Arguments* arguments,
+                       const char* path,
+                       int oflag,
+                       mode_t cmode);
   virtual int StatCall(Arguments* arguments,
                        const char* path,
                        struct stat* buf);

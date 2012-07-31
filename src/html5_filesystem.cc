@@ -133,26 +133,45 @@ Html5FileSystem::~Html5FileSystem() {
   delete file_ref_;
 }
 
+// TODO: Handle cmode argument.
 int Html5FileSystem::OpenCall(Arguments* arguments,
                               const char* path,
-                              int oflag, ...) {
+                              int oflag,
+                              mode_t cmode) {
   if (!filesystem_)
     return Initialize(arguments);
 
   if (waiting_) {
+    // Check FileIO::Open completion result.
     waiting_ = false;
-    if (arguments->result.callback != 0)
-      return -1;
+    if (arguments->result.callback != 0) {
+      std::stringstream ss;
+      ss << "Html5FileSystem::Open failed internal FileIO::Open completion "
+         << "with " << arguments->result.callback << std::endl;
+      naclfs_->Log(ss.str().c_str());
+      // TODO: Set proper value to returning errno.
+      naclfs_->Log("  TODO: Set errno correctly\n");
+      return ENOENT;
+    }
     querying_ = true;
+    // TODO: Check return value.
     file_io_->Query(&file_info_, callback_);
     arguments->chaining = true;
     return 0;
   }
 
   if (querying_) {
+    // Check FileIO::Query completion result.
     querying_ = false;
-    if (arguments->result.callback != 0)
-      return -1;
+    if (arguments->result.callback != 0) {
+      std::stringstream ss;
+      ss << "Html5FileSystem::Open failed internal FileIO::Query completion "
+         << "with " << arguments->result.callback << std::endl;
+      naclfs_->Log(ss.str().c_str());
+      // TODO: Set proper value to returning errno.
+      naclfs_->Log("  TODO: Set errno correctly\n");
+      return ENOENT;
+    }
     if (oflag & O_APPEND)
       offset_ = file_info_.size;
     return 0;
@@ -188,11 +207,15 @@ int Html5FileSystem::OpenCall(Arguments* arguments,
         std::endl;
     naclfs_->Log(ss.str().c_str());
   }
-  if (file_io_->Open(*file_ref_, flags, callback_) !=
-      PP_OK_COMPLETIONPENDING) {
-    naclfs_->Log(
-        "Html5FileSystem::Open doesn't return PP_OK_COMPLETIONPENDING\n");
-    return -1;
+  int32_t result = file_io_->Open(*file_ref_, flags, callback_);
+  if (result != PP_OK_COMPLETIONPENDING) {
+    std::stringstream ss;
+    ss << "Html5FileSystem::Open failed internal FileIO::Open with " << result
+       << std::endl;
+    naclfs_->Log(ss.str().c_str());
+    // TODO: Set proper value to returning errno.
+    naclfs_->Log("  TODO: Set errno correctly\n");
+    return ENOENT;
   }
   waiting_ = true;
   arguments->chaining = true;

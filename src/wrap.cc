@@ -46,9 +46,7 @@ int __wrap_open(const char* path, int oflag, mode_t cmode, int* newfd) {
     ss << " oflag=" << oflag << std::endl;
     naclfs::NaClFs::Log(ss.str().c_str());
   }
-  *newfd = naclfs::NaClFs::GetFileSystem()->Open(path, oflag);
-  // TODO: Handle cmode, and returning errno.
-  return 0;
+  return naclfs::NaClFs::GetFileSystem()->Open(path, oflag, cmode, newfd);
 }
 
 int __wrap_stat(const char* path, struct stat* buf) {

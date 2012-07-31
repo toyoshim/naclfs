@@ -59,7 +59,7 @@ PortFileSystem::PortFileSystem(NaClFs* naclfs)
 PortFileSystem::~PortFileSystem() {
 }
 
-int PortFileSystem::Open(const char* path, int oflag, ...) {
+int PortFileSystem::Open(const char* path, int oflag, mode_t cmode) {
   if (strcmp(path, kStdInPath) == 0) {
     id_ = STDIN_FILENO;
     readable_ = true;
@@ -83,7 +83,7 @@ int PortFileSystem::Open(const char* path, int oflag, ...) {
     ss << "PortFileSystem: can not open unknown device name: " << path
        << std::endl;
     naclfs_->Log(ss.str().c_str());
-    return -1;
+    return ENODEV;
   }
   return 0;
 }

@@ -51,7 +51,7 @@ class PortFileSystem : public FileSystem::Delegate {
  public:
   PortFileSystem(NaClFs* naclfs);
   virtual ~PortFileSystem();
-  virtual int Open(const char* path, int oflag, ...);
+  virtual int Open(const char* path, int oflag, mode_t cmode);
   virtual int Stat(const char* path, struct stat* buf) { return -1; }
   virtual int Close();
   virtual ssize_t Read(void* buf, size_t nbytes);

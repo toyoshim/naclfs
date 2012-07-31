@@ -34,6 +34,7 @@
 #pragma once
 
 #include <dirent.h>
+#include <errno.h>
 #include <pthread.h>
 #include <semaphore.h>
 #include <stdio.h>
@@ -81,6 +82,7 @@ class FileSystem {
         struct {
           const char* path;
           int oflag;
+          mode_t cmode;
         } open;
         struct {
           const char* path;
@@ -137,7 +139,7 @@ class FileSystem {
 
    public:
     Delegate();
-    virtual int Open(const char* path, int oflag, ...);
+    virtual int Open(const char* path, int oflag, mode_t cmode);
     virtual int Stat(const char* path, struct stat* buf);
     virtual int Close();
     virtual ssize_t Read(void* buf, size_t nbytes);
@@ -152,7 +154,8 @@ class FileSystem {
 
     virtual int OpenCall(Arguments* arguments,
                          const char* path,
-                         int oflag, ...) { return -1; }
+                         int oflag,
+                         mode_t cmode) { return ENODEV; }
     virtual int StatCall(Arguments* arguments,
                          const char* path,
                          struct stat* buf) { return -1; }
@@ -207,7 +210,7 @@ class FileSystem {
   FileSystem(NaClFs* naclfs);
   ~FileSystem();
 
-  int Open(const char* path, int oflag, ...);
+  int Open(const char* path, int oflag, mode_t cmode, int* newfd);
   int Stat(const char* path, struct stat* buf);
   int Close(int fildes);
   ssize_t Read(int fildes, void* buf, size_t nbytes);
