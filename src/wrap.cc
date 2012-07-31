@@ -174,6 +174,16 @@ int __wrap_closedir(DIR* dirp) {
   return naclfs::NaClFs::GetFileSystem()->CloseDir(dirp);
 }
 
+int __wrap_chdir(const char* path) {
+  if (naclfs::NaClFs::trace()) {
+    std::stringstream ss;
+    ss << "enter chdir:" << std::endl;
+    ss << " path=" << path << std::endl;
+    naclfs::NaClFs::Log(ss.str().c_str());
+  }
+  return naclfs::NaClFs::GetFileSystem()->ChDir(path);
+}
+
 extern "C" struct nacl_irt_filename __libnacl_irt_filename;
 extern "C" struct nacl_irt_fdio __libnacl_irt_fdio;
 void do_wrap(void) {

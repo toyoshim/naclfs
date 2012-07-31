@@ -452,6 +452,21 @@ int FileSystem::CloseDir(DIR* dirp) {
   return result;
 }
 
+int FileSystem::ChDir(const char* path) {
+  struct stat buf;
+  int result = Stat(path, &buf);
+  if (result)
+    return result;
+  if (!S_ISDIR(buf.st_mode)) {
+    errno = ENOTDIR;
+    return -1;
+  }
+  std::string fullpath;
+  CreateFullpath(path, &fullpath);
+  cwd_ = fullpath.substr(1);
+  return 0;
+}
+
 bool FileSystem::HandleMessage(const pp::Var& message) {
   std::stringstream ss;
   ss << "HandleMessage: " << message.AsString().c_str();
@@ -467,11 +482,11 @@ bool FileSystem::HandleMessage(const pp::Var& message) {
 void FileSystem::CreateFullpath(const char* path, std::string* fullpath) {
   // Insert current path to a relative path.
   std::vector<std::string> paths;
-  if (*path != '/')
+  if (*path != '/' && cwd_.size())
     paths.push_back(cwd_);
 
   // Split path into a string vector.
-  for (const char* caret = path; *caret != 0;) {
+  for (const char* caret = path; *caret != 0; ) {
     const char* delim = index(caret, '/');
     if (NULL == delim) {
       paths.push_back(std::string(caret));
@@ -497,11 +512,20 @@ void FileSystem::CreateFullpath(const char* path, std::string* fullpath) {
   }
 
   // Join paths.
-  for (std::vector<std::string>::iterator iter = paths.begin();
+  if (!paths.size())
+    *fullpath = "/";
+  else for (std::vector<std::string>::iterator iter = paths.begin();
       iter != paths.end();
       ++iter) {
     *fullpath = fullpath->append("/");
     *fullpath = fullpath->append(*iter);
+  }
+
+  if (naclfs::NaClFs::trace()) {
+    std::stringstream ss;
+    ss << "CreateFullpath from '" << path << "' with cwd '/" << cwd_.c_str()
+       << "' -> '" << fullpath->c_str() << "'" << std::endl;
+    naclfs_->Log(ss.str().c_str());
   }
 }
 

@@ -151,6 +151,13 @@ class NaClFsTestsInstance: public pp::Instance {
     dir = opendir("foo");
     printf(" dir = %p\n", dir);
 
+    printf("chdir to foo_dir/: %d\n", chdir("foo_dir/"));
+    out = fopen("chdir", "a+");
+    fclose(out);
+    printf("chdir ..: %d\n", chdir(".."));
+    out = fopen("top", "a+");
+    fclose(out);
+
     self->naclfs_->Log("start echo\n");
     for (;;) {
       uint8_t buffer[1];

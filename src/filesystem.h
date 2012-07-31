@@ -222,6 +222,7 @@ class FileSystem {
   void RewindDir(DIR* dirp);
   struct dirent* ReadDir(DIR* dirp);
   int CloseDir(DIR* dirp);
+  int ChDir(const char* path);
 
   static bool HandleMessage(const pp::Var& message);
 

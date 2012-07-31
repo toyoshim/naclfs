@@ -49,6 +49,7 @@ DIR* __wrap_opendir(const char* dirname);
 void __wrap_rewinddir(DIR* dirp);
 struct dirent* __wrap_readdir(DIR* dirp);
 int __wrap_closedir(DIR* dirp);
+int __wrap_chdir(const char* path);
 
 # if defined(__cplusplus)
 };
