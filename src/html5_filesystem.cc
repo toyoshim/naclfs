@@ -207,10 +207,16 @@ int Html5FileSystem::StatCall(Arguments* arguments,
 
   if (waiting_) {
     waiting_ = false;
-    if (arguments->result.callback == -2 || arguments->result.callback == -5) {
+    if (arguments->result.callback) {
+      std::stringstream ss;
+      ss << "Html5FileSystem::StatCall got call back failure result "
+         << arguments->result.callback << std::endl;
+      naclfs_->Log(ss.str().c_str());
+    }
+    if (arguments->result.callback == -2) {
       // TODO: Queries on directories seem to fail with error code -2.
-      // Queries on a path containing '../' seem to fail with error code -5.
       // See, http://crbug.com/132201
+      naclfs_->Log(" ... apply workaround for http://crbug.com/132201\n");
       std::stringstream ss;
       ss << kRpcId << kCmdStat << path;
       // As a workaround, request JavaScript to proxy the query.

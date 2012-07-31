@@ -32,8 +32,10 @@
 #include "filesystem.h"
 
 #include <stdarg.h>
-#include <sstream>
 #include <string.h>
+
+#include <sstream>
+#include <vector>
 
 #include "html5_filesystem.h"
 #include "naclfs.h"
@@ -297,7 +299,9 @@ FileSystem::FileSystem(NaClFs* naclfs) : naclfs_(naclfs) {
   pthread_mutex_init(&mutex_, NULL);
   pthread_mutex_lock(&mutex_);
   core_ = pp::Module::Get()->core();
-  cwd_ = "/";
+  // Current path which doesn't contain the first slash.
+  // E.g., "" means "/".
+  cwd_ = "";
 }
 
 FileSystem::~FileSystem() {
@@ -456,12 +460,43 @@ bool FileSystem::HandleMessage(const pp::Var& message) {
 }
 
 void FileSystem::CreateFullpath(const char* path, std::string* fullpath) {
-  // TODO: Handle directories.
-  if (path[0] == '/') {
-    *fullpath = path;
-  } else {
-    *fullpath = cwd_;
-    *fullpath += path;
+  // Insert current path to a relative path.
+  std::vector<std::string> paths;
+  if (*path != '/')
+    paths.push_back(cwd_);
+
+  // Split path into a string vector.
+  for (const char* caret = path; *caret != 0;) {
+    const char* delim = index(caret, '/');
+    if (NULL == delim) {
+      paths.push_back(std::string(caret));
+      break;
+    } else {
+      int size = delim - caret;
+      if (size != 0 && !(size == 1 && *caret == '.'))  // Trim '' and '.'.
+        paths.push_back(std::string(caret, size));
+      caret = delim + 1;
+    }
+  }
+
+  // Normalize '..'.
+  for (std::vector<std::string>::iterator iter = paths.begin();
+      iter != paths.end();
+      ++iter) {
+    if (iter->compare(".."))
+      continue;
+    if (iter == paths.begin())
+      continue;
+    paths.erase(iter--);
+    paths.erase(iter--);
+  }
+
+  // Join paths.
+  for (std::vector<std::string>::iterator iter = paths.begin();
+      iter != paths.end();
+      ++iter) {
+    *fullpath = fullpath->append("/");
+    *fullpath = fullpath->append(*iter);
   }
 }
 
