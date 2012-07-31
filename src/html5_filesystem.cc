@@ -290,9 +290,8 @@ ssize_t Html5FileSystem::ReadCall(Arguments* arguments,
                                   size_t nbytes) {
   if (waiting_) {
     waiting_ = false;
-    if (0 == arguments->result.callback)
-      return EOF;
-    offset_ += arguments->result.callback;
+    if (arguments->result.callback > 0)
+      offset_ += arguments->result.callback;
     return arguments->result.callback;
   }
 
@@ -312,7 +311,8 @@ ssize_t Html5FileSystem::WriteCall(Arguments* arguments,
                                    size_t nbytes) {
   if (waiting_) {
     waiting_ = false;
-    offset_ += arguments->result.callback;
+    if (arguments->result.callback > 0)
+      offset_ += arguments->result.callback;
     return arguments->result.callback;
   }
 
