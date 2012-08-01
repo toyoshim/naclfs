@@ -158,6 +158,8 @@ class NaClFsTestsInstance: public pp::Instance {
     out = fopen("top", "a+");
     fclose(out);
 
+    printf("parent of root must be root: %d\n", stat("../top", &buf));
+
     self->naclfs_->Log("start echo\n");
     for (;;) {
       uint8_t buffer[1];

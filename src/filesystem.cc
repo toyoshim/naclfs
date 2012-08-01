@@ -505,9 +505,8 @@ void FileSystem::CreateFullpath(const char* path, std::string* fullpath) {
       ++iter) {
     if (iter->compare(".."))
       continue;
-    if (iter == paths.begin())
-      continue;
-    paths.erase(iter--);
+    if (iter != paths.begin())
+      paths.erase(iter--);
     paths.erase(iter--);
   }
 
@@ -517,8 +516,8 @@ void FileSystem::CreateFullpath(const char* path, std::string* fullpath) {
   else for (std::vector<std::string>::iterator iter = paths.begin();
       iter != paths.end();
       ++iter) {
-    *fullpath = fullpath->append("/");
-    *fullpath = fullpath->append(*iter);
+    fullpath->append("/");
+    fullpath->append(*iter);
   }
 
   if (naclfs::NaClFs::trace()) {
