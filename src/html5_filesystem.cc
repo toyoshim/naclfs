@@ -55,6 +55,31 @@ const char* const kRpcId = "X5";
 const char* const kCmdStat = "S";
 const char* const kCmdDir = "D";
 
+int PPErrorToErrNo(int pp_error) {
+  switch (pp_error) {
+   case PP_ERROR_NOACCESS:
+    return EACCES;
+   case PP_ERROR_NOMEMORY:
+    return ENOMEM;
+   case PP_ERROR_NOSPACE:
+    return ENOSPC;
+   case PP_ERROR_NOQUOTA:
+    return ENOSPC;
+   case PP_ERROR_FILENOTFOUND:
+    return ENOENT;
+   case PP_ERROR_FILEEXISTS:
+    return EEXIST;
+   case PP_ERROR_FILETOOBIG:
+    return EFBIG;
+   default: {
+    std::stringstream ss;
+    ss << "Html5FileSystem internal errno conversion failed for "
+       << pp_error << std::endl;
+    naclfs::NaClFs::Log(ss.str().c_str());
+    return ENOSYS; }
+  }
+}
+
 class Html5FileSystemDir : public naclfs::FileSystem::Dir {
  public:
   Html5FileSystemDir(naclfs::Html5FileSystem* owner,
@@ -147,11 +172,10 @@ int Html5FileSystem::OpenCall(Arguments* arguments,
     if (arguments->result.callback != 0) {
       std::stringstream ss;
       ss << "Html5FileSystem::Open failed internal FileIO::Open completion "
-         << "with " << arguments->result.callback << std::endl;
+         << "with " << arguments->result.callback
+         << " for " << path << std::endl;
       naclfs_->Log(ss.str().c_str());
-      // TODO: Set proper value to returning errno.
-      naclfs_->Log("  TODO: Set errno correctly\n");
-      return ENOENT;
+      return PPErrorToErrNo(arguments->result.callback);
     }
     querying_ = true;
     // TODO: Check return value.
@@ -166,11 +190,10 @@ int Html5FileSystem::OpenCall(Arguments* arguments,
     if (arguments->result.callback != 0) {
       std::stringstream ss;
       ss << "Html5FileSystem::Open failed internal FileIO::Query completion "
-         << "with " << arguments->result.callback << std::endl;
+         << "with " << arguments->result.callback
+         << " for " << path << std::endl;
       naclfs_->Log(ss.str().c_str());
-      // TODO: Set proper value to returning errno.
-      naclfs_->Log("  TODO: Set errno correctly\n");
-      return ENOENT;
+      return PPErrorToErrNo(arguments->result.callback);
     }
     if (oflag & O_APPEND)
       offset_ = file_info_.size;
@@ -211,11 +234,9 @@ int Html5FileSystem::OpenCall(Arguments* arguments,
   if (result != PP_OK_COMPLETIONPENDING) {
     std::stringstream ss;
     ss << "Html5FileSystem::Open failed internal FileIO::Open with " << result
-       << std::endl;
+       << " for " << path << std::endl;
     naclfs_->Log(ss.str().c_str());
-    // TODO: Set proper value to returning errno.
-    naclfs_->Log("  TODO: Set errno correctly\n");
-    return ENOENT;
+    return PPErrorToErrNo(arguments->result.callback);
   }
   waiting_ = true;
   arguments->chaining = true;
@@ -236,8 +257,8 @@ int Html5FileSystem::StatCall(Arguments* arguments,
          << arguments->result.callback << std::endl;
       naclfs_->Log(ss.str().c_str());
     }
-    if (arguments->result.callback == -2) {
-      // TODO: Queries on directories seem to fail with error code -2.
+    if (arguments->result.callback == PP_ERROR_FAILED) {
+      // TODO: Queries on directories seem to fail with PP_ERROR_FAILED.
       // See, http://crbug.com/132201
       naclfs_->Log(" ... apply workaround for http://crbug.com/132201\n");
       std::stringstream ss;
