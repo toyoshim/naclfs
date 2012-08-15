@@ -33,6 +33,7 @@
 
 #include <fcntl.h>
 #include <sstream>
+#include <stdarg.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -399,7 +400,33 @@ off_t Html5FileSystem::SeekCall(Arguments* arguments,
 }
 
 int Html5FileSystem::FcntlCall(Arguments* arguments, int cmd, ...) {
-  naclfs_->Log("Html5FileSystem::Fcntl not supported\n");
+  switch (cmd) {
+    case F_GETFD: {
+      // TODO: FD_CLOEXEC isn't supported.
+      return 0;
+    }
+    case F_SETFD: {
+      va_list ap;
+      long arg;
+      va_start(ap, cmd);
+      arg = va_arg(ap, long);
+      if (arg != FD_CLOEXEC) {
+        std::ostringstream ss;
+        ss << "Html5FileSystem::Fcntl not supported cmd=F_SETFD arg="
+           << arg << "\n";
+        naclfs_->Log(ss.str().c_str());
+        return -1;
+      }
+      va_end(ap);
+      return 0;
+    }
+    default: {
+      std::ostringstream ss;
+      ss << "Html5FileSystem::Fcntl not supported cmd=" << cmd << "\n";
+      naclfs_->Log(ss.str().c_str());
+      return -1;
+    }
+  }
   return -1;
 }
 
