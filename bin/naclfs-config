@@ -5,13 +5,13 @@ function _wrap() {
 }
 
 function libs() {
-  _wrap "fcntl"
-  _wrap "mkdir"
-  _wrap "opendir"
-  _wrap "rewinddir"
-  _wrap "readdir"
-  _wrap "closedir"
-  _wrap "chdir"
+  # _wrap "fcntl"
+  # _wrap "mkdir"
+  # _wrap "opendir"
+  # _wrap "rewinddir"
+  # _wrap "readdir"
+  # _wrap "closedir"
+  # _wrap "chdir"
   echo
 }
 

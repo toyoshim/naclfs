@@ -39,20 +39,4 @@
 
 void do_wrap(void);
 
-# if defined(__cplusplus)
-extern "C" {
-# endif  // defined(__cplusplus)
-
-int __wrap_fcntl(int fildes, int cmd, ...);
-int __wrap_mkdir(const char* path, mode_t mode);
-DIR* __wrap_opendir(const char* dirname);
-void __wrap_rewinddir(DIR* dirp);
-struct dirent* __wrap_readdir(DIR* dirp);
-int __wrap_closedir(DIR* dirp);
-int __wrap_chdir(const char* path);
-
-# if defined(__cplusplus)
-};
-# endif  // defined(__cplusplus)
-
 #endif  // _NACLFS_WRAP_H_

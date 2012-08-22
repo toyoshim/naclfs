@@ -112,7 +112,7 @@ int __wrap_seek(int fildes, off_t offset, int whence, off_t* new_offset) {
   return 0;
 }
 
-int __wrap_fcntl(int fildes, int cmd, ...) {
+extern "C" int fcntl(int fildes, int cmd, ...) {
   if (naclfs::NaClFs::trace()) {
     std::stringstream ss;
     ss << "enter fcntl:" << std::endl;
@@ -123,7 +123,7 @@ int __wrap_fcntl(int fildes, int cmd, ...) {
   return naclfs::NaClFs::GetFileSystem()->Fcntl(fildes, cmd);
 }
 
-int __wrap_mkdir(const char* path, mode_t mode) {
+extern "C" int mkdir(const char* path, mode_t mode) {
   if (naclfs::NaClFs::trace()) {
     std::stringstream ss;
     ss << "enter mkdir:" << std::endl;
@@ -134,7 +134,7 @@ int __wrap_mkdir(const char* path, mode_t mode) {
   return naclfs::NaClFs::GetFileSystem()->MkDir(path, mode);
 }
 
-DIR* __wrap_opendir(const char* dirname) {
+extern "C" DIR* opendir(const char* dirname) {
   if (naclfs::NaClFs::trace()) {
     std::stringstream ss;
     ss << "enter opendir:" << std::endl;
@@ -144,7 +144,7 @@ DIR* __wrap_opendir(const char* dirname) {
   return naclfs::NaClFs::GetFileSystem()->OpenDir(dirname);
 }
 
-void __wrap_rewinddir(DIR* dirp) {
+extern "C" void rewinddir(DIR* dirp) {
   if (naclfs::NaClFs::trace()) {
     std::stringstream ss;
     ss << "enter rewinddir:" << std::endl;
@@ -154,7 +154,7 @@ void __wrap_rewinddir(DIR* dirp) {
   naclfs::NaClFs::GetFileSystem()->RewindDir(dirp);
 }
 
-struct dirent* __wrap_readdir(DIR* dirp) {
+extern "C" struct dirent* readdir(DIR* dirp) {
   if (naclfs::NaClFs::trace()) {
     std::stringstream ss;
     ss << "enter readdir:" << std::endl;
@@ -164,7 +164,7 @@ struct dirent* __wrap_readdir(DIR* dirp) {
   return naclfs::NaClFs::GetFileSystem()->ReadDir(dirp);
 }
 
-int __wrap_closedir(DIR* dirp) {
+extern "C" int closedir(DIR* dirp) {
   if (naclfs::NaClFs::trace()) {
     std::stringstream ss;
     ss << "enter closedir:" << std::endl;
@@ -174,7 +174,7 @@ int __wrap_closedir(DIR* dirp) {
   return naclfs::NaClFs::GetFileSystem()->CloseDir(dirp);
 }
 
-int __wrap_chdir(const char* path) {
+extern "C" int chdir(const char* path) {
   if (naclfs::NaClFs::trace()) {
     std::stringstream ss;
     ss << "enter chdir:" << std::endl;
