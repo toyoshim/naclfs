@@ -399,17 +399,15 @@ off_t Html5FileSystem::SeekCall(Arguments* arguments,
   return offset_;
 }
 
-int Html5FileSystem::FcntlCall(Arguments* arguments, int cmd, ...) {
+int Html5FileSystem::FcntlCall(Arguments* arguments, int cmd, va_list* ap) {
   switch (cmd) {
     case F_GETFD: {
       // TODO: FD_CLOEXEC isn't supported.
       return 0;
     }
     case F_SETFD: {
-      va_list ap;
       long arg;
-      va_start(ap, cmd);
-      arg = va_arg(ap, long);
+      arg = va_arg(*ap, long);
       if (arg != FD_CLOEXEC) {
         std::ostringstream ss;
         ss << "Html5FileSystem::Fcntl not supported cmd=F_SETFD arg="
@@ -417,7 +415,6 @@ int Html5FileSystem::FcntlCall(Arguments* arguments, int cmd, ...) {
         naclfs_->Log(ss.str().c_str());
         return -1;
       }
-      va_end(ap);
       return 0;
     }
     default: {

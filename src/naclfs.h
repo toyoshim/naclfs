@@ -34,6 +34,8 @@
 #pragma once
 
 #include <pthread.h>
+#include <stdint.h>
+
 #include <string>
 
 namespace pp {

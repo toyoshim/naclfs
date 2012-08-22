@@ -37,6 +37,7 @@
 #include <errno.h>
 #include <pthread.h>
 #include <semaphore.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <sys/stat.h>
 
@@ -102,7 +103,7 @@ class FileSystem {
         } seek;
         struct {
           int cmd;
-          int arg1;
+          va_list* ap;
         } fcntl;
         struct {
           const char* path;
@@ -145,7 +146,7 @@ class FileSystem {
     virtual ssize_t Read(void* buf, size_t nbytes);
     virtual ssize_t Write(const void* buf, size_t nbytes);
     virtual off_t Seek(off_t offset, int whence);
-    virtual int Fcntl(int cmd, ...);
+    virtual int Fcntl(int cmd, va_list* ap);
     virtual int MkDir(const char* path, mode_t mode);
     virtual DIR* OpenDir(const char* dirname);
     virtual void RewindDir(DIR* dirp);
@@ -169,7 +170,9 @@ class FileSystem {
     virtual off_t SeekCall(Arguments* arguments,
                            off_t offset,
                            int whence) { return -1; }
-    virtual int FcntlCall(Arguments* arguments, int cmd, ...) { return -1; }
+    virtual int FcntlCall(Arguments* arguments,
+                          int cmd,
+                          va_list* ap) { return -1; }
     virtual int MkDirCall(Arguments* arguments,
                           const char* path,
                           mode_t mode) { return -1; }
@@ -216,7 +219,7 @@ class FileSystem {
   ssize_t Read(int fildes, void* buf, size_t nbytes);
   ssize_t Write(int fildes, const void* buf, size_t nbytes);
   off_t Seek(int fildes, off_t offset, int whence);
-  int Fcntl(int fildes, int cmd, ...);
+  int Fcntl(int fildes, int cmd, va_list* ap);
   int MkDir(const char* path, mode_t mode);
   DIR* OpenDir(const char* dirname);
   void RewindDir(DIR* dirp);

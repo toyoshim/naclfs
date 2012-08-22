@@ -134,18 +134,14 @@ off_t FileSystem::Delegate::Seek(off_t offset, int whence) {
   return arguments.result.seek;
 }
 
-int FileSystem::Delegate::Fcntl(int cmd, ...) {
-  va_list ap;
-  va_start(ap, cmd);
-  int arg1 = va_arg(ap, int);
-  va_end(ap);
+int FileSystem::Delegate::Fcntl(int cmd, va_list* ap) {
   if (core_->IsMainThread())
     return -1;
   Arguments arguments;
   arguments.delegate = this;
   arguments.function = FCNTL;
   arguments.u.fcntl.cmd = cmd;
-  arguments.u.fcntl.arg1 = arg1;
+  arguments.u.fcntl.ap = ap;
   Call(arguments);
   return arguments.result.fcntl;
 }
@@ -269,7 +265,7 @@ void FileSystem::Delegate::Switch(Arguments* arguments) {
       arguments->result.fcntl =
           arguments->delegate->FcntlCall(arguments,
                                          arguments->u.fcntl.cmd,
-                                         arguments->u.fcntl.arg1);
+                                         arguments->u.fcntl.ap);
       break;
     case MKDIR:
       arguments->result.mkdir =
@@ -386,15 +382,11 @@ off_t FileSystem::Seek(int fildes, off_t offset, int whence) {
   return delegate->Seek(offset, whence);
 }
 
-int FileSystem::Fcntl(int fildes, int cmd, ...) {
-  va_list ap;
-  va_start(ap, cmd);
-  int arg1 = va_arg(ap, int);
-  va_end(ap);
+int FileSystem::Fcntl(int fildes, int cmd, va_list* ap) {
   Delegate* delegate = GetDelegate(fildes);
   if (!delegate)
     return -1;
-  return delegate->Fcntl(cmd, arg1);
+  return delegate->Fcntl(cmd, ap);
 }
 
 int FileSystem::MkDir(const char* path, mode_t mode) {

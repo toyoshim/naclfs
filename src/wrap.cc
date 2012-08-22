@@ -32,6 +32,7 @@
 #include "wrap.h"
 
 #include <irt.h>
+#include <stdarg.h>
 
 #include <sstream>
 
@@ -113,6 +114,8 @@ int __wrap_seek(int fildes, off_t offset, int whence, off_t* new_offset) {
 }
 
 extern "C" int fcntl(int fildes, int cmd, ...) {
+  va_list ap;
+  va_start(ap, cmd);
   if (naclfs::NaClFs::trace()) {
     std::stringstream ss;
     ss << "enter fcntl:" << std::endl;
@@ -120,7 +123,9 @@ extern "C" int fcntl(int fildes, int cmd, ...) {
     ss << " cmd=" << cmd << std::endl;
     naclfs::NaClFs::Log(ss.str().c_str());
   }
-  return naclfs::NaClFs::GetFileSystem()->Fcntl(fildes, cmd);
+  int result = naclfs::NaClFs::GetFileSystem()->Fcntl(fildes, cmd, &ap);
+  va_end(ap);
+  return result;
 }
 
 extern "C" int mkdir(const char* path, mode_t mode) {

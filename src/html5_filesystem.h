@@ -71,7 +71,7 @@ class Html5FileSystem : public FileSystem::Delegate {
                             const void* buf,
                             size_t nbytes);
   virtual off_t SeekCall(Arguments* arguments, off_t offset, int whence);
-  virtual int FcntlCall(Arguments* arguments, int cmd, ...);
+  virtual int FcntlCall(Arguments* arguments, int cmd, va_list* ap);
   virtual int MkDirCall(Arguments* arguments, const char* path, mode_t mode);
   virtual DIR* OpenDirCall(Arguments* arguments, const char* dirname);
   virtual void RewindDirCall(Arguments* arguments, DIR* dirp);

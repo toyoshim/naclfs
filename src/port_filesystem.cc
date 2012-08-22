@@ -127,12 +127,9 @@ off_t PortFileSystem::Seek(off_t offset, int whence) {
   return -1;
 }
 
-int PortFileSystem::Fcntl(int cmd, ...) {
+int PortFileSystem::Fcntl(int cmd, va_list* ap) {
   if (cmd == F_SETFL) {
-    va_list ap;
-    va_start(ap, cmd);
-    int flag = va_arg(ap, int);
-    va_end(ap);
+    long flag = va_arg(*ap, long);
     blocking_ = !(flag & O_NONBLOCK);
     if (flag & ~O_NONBLOCK) {
       std::stringstream ss;
