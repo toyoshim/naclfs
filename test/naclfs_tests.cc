@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2011, Takashi TOYOSHIMA <toyoshim@gmail.com>
+// Copyright (c) 2012, Takashi TOYOSHIMA <toyoshim@gmail.com>
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -34,6 +34,7 @@
 #include <pthread.h>
 #include <sstream>
 #include <stdio.h>
+#include <stdlib.h>
 #include <sys/stat.h>
 
 #include "naclfs.h"

@@ -5,6 +5,7 @@ function _wrap() {
 }
 
 function libs() {
+  /bin/echo -n "-L$1/../obj/$2 -lnaclfs"
   # _wrap "fcntl"
   # _wrap "mkdir"
   # _wrap "opendir"
@@ -12,17 +13,17 @@ function libs() {
   # _wrap "readdir"
   # _wrap "closedir"
   # _wrap "chdir"
-  echo
 }
 
-function objs() {
-  /bin/echo -n "$1/src/wrap.o $1/src/naclfs.o $1/src/filesystem.o "
-  /bin/echo -n "$1/src/port_filesystem.o $1/src/html5_filesystem.o "
-  echo
+function help() {
+  echo "Usage: naclfs-config [--libs toolchain]"
+  echo "  toolchain:"
+  echo "    newlib-i686"
+  echo "    newlib-x86_64"
 }
 
 case $1 in
-  --libs) libs;;
-  --objs) objs $2;;
+  --libs) libs "`dirname $0`" $2;;
+  *) help;;
 esac
 

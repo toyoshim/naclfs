@@ -37,6 +37,6 @@
 # include <stdio.h>
 # include <sys/stat.h>
 
-void do_wrap(void);
+extern "C" void do_wrap(void);
 
 #endif  // _NACLFS_WRAP_H_
