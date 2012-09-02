@@ -46,7 +46,7 @@ export CYGWIN
 CXX	:= $(TC_PATH)/bin/$(ARCH)-nacl-g++
 AR	:= $(TC_PATH)/bin/$(ARCH)-nacl-ar
 RANLIB	:= $(TC_PATH)/bin/$(ARCH)-nacl-ranlib
-CFLAGS	:= $(ARCH_FLAGS) -O9 -g -Wall -pthread -Isrc
+CFLAGS	:= $(ARCH_FLAGS) -O9 -g -Wall -pthread `./bin/naclfs-config --cflags`
 OBJ_OUT	:= obj/$(TC_TYPE)-$(ARCH)
 HTML	:= html/$(TC_TYPE)
 SRCS	:= src/wrap.cc src/naclfs.cc src/filesystem.cc src/port_filesystem.cc \
@@ -56,8 +56,7 @@ LIBS	:= `./bin/naclfs-config --libs $(TC_TYPE)-$(ARCH)` \
 	   -lppapi -lppapi_cpp -lpthread
 LDFLAGS	:=
 
-all:
-	@$(MAKE) newlib32test
+all: newlibtest
 
 .PHONY: help clean
 help:

@@ -4,26 +4,26 @@ function _wrap() {
   /bin/echo -n "-Xlinker --wrap -Xlinker $1 "
 }
 
+function cflags() {
+  /bin/echo -n "-I$1/../src"
+}
+
 function libs() {
   /bin/echo -n "-L$1/../obj/$2 -lnaclfs"
-  # _wrap "fcntl"
-  # _wrap "mkdir"
-  # _wrap "opendir"
-  # _wrap "rewinddir"
-  # _wrap "readdir"
-  # _wrap "closedir"
-  # _wrap "chdir"
 }
 
 function help() {
-  echo "Usage: naclfs-config [--libs toolchain]"
+  echo "Usage: naclfs-config [--cflags] [--libs toolchain]"
   echo "  toolchain:"
-  echo "    newlib-i686"
-  echo "    newlib-x86_64"
+  echo "    newlib-i686   ... 32-bit static library for newlib"
+  echo "    newlib-x86_64 ... 64-bit static library for newlib"
 }
 
+DIRNAME="`dirname $0`"
+
 case $1 in
-  --libs) libs "`dirname $0`" $2;;
+  --cflags) cflags $DIRNAME;;
+  --libs) libs $DIRNAME $2;;
   *) help;;
 esac
 
