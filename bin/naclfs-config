@@ -12,8 +12,12 @@ function libs() {
   /bin/echo -n "-L$1/../obj/$2 -lnaclfs"
 }
 
+function nmf() {
+  /bin/echo -n "-L $1/../obj/glibc-i686 -L $1/../obj/glibc-x86_64"
+}
+
 function help() {
-  echo "Usage: naclfs-config [--cflags] [--libs toolchain]"
+  echo "Usage: naclfs-config [--cflags] [--libs toolchain] [--nmf]"
   echo "  toolchain:"
   echo "    newlib-i686   ... 32-bit static library for newlib"
   echo "    newlib-x86_64 ... 64-bit static library for newlib"
@@ -24,6 +28,7 @@ DIRNAME="`dirname $0`"
 case $1 in
   --cflags) cflags $DIRNAME;;
   --libs) libs $DIRNAME $2;;
+  --nmf) nmf $DIRNAME;;
   *) help;;
 esac
 

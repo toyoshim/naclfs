@@ -114,7 +114,7 @@ glibctest:
 	@echo "*** generating nmf for glibc ***"
 	@$(NMFGEN) -D $(OBJDUMP) -o html/glibc/naclfs_tests.nmf \
 		-L $(TC_PATH)/x86_64-nacl/lib32 -L $(TC_PATH)/x86_64-nacl/lib \
-		-L obj/glibc-i686 -L obj/glibc-x86_64 \
+		`./bin/naclfs-config --nmf` \
 		html/glibc/naclfs_tests_x86_32.nexe \
 		html/glibc/naclfs_tests_x86_64.nexe \
 		-t glibc -s html/glibc
