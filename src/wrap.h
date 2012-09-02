@@ -37,6 +37,6 @@
 # include <stdio.h>
 # include <sys/stat.h>
 
-extern "C" void do_wrap(void);
+void write_to_real_stderr(const void* buf, size_t count);
 
 #endif  // _NACLFS_WRAP_H_

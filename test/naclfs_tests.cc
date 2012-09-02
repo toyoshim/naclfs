@@ -56,14 +56,17 @@ class NaClFsTestsInstance: public pp::Instance {
     std::stringstream ss;
     naclfs_->Log("opening stdio descriptors...\n");
     int fdin = open("/dev/stdin", O_RDONLY);
+    assert(fdin == STDIN_FILENO);
     ss.str("");
     ss << " in : " << fdin << std::endl;
     naclfs_->Log(ss.str().c_str());
     int fdout = open("/dev/stdout", O_WRONLY);
+    assert(fdout == STDOUT_FILENO);
     ss.str("");
     ss << " out: " << fdout << std::endl;
     naclfs_->Log(ss.str().c_str());
     int fderr = open("/dev/stderr", O_WRONLY);
+    assert(fderr == STDERR_FILENO);
     ss.str("");
     ss << " err: " << fderr << std::endl;
     naclfs_->Log(ss.str().c_str());
@@ -79,7 +82,8 @@ class NaClFsTestsInstance: public pp::Instance {
     write(STDOUT_FILENO, "out\n", 4);
     write(STDERR_FILENO, "err\n", 4);
 
-    printf("hello to stdout\n");
+    printf("hello to default\n");
+    fprintf(stdout, "hello to stdout\n");
     fprintf(stderr, "hello to stderr\n");
 
     FILE* fp = fopen("/dev/stdout", "a");
@@ -113,8 +117,8 @@ class NaClFsTestsInstance: public pp::Instance {
     printf("  result: %d\n", stat("out.txt", &buf));
     printf("  st_mode: %o\n", buf.st_mode);
     printf("  st_size: %Ld\n", buf.st_size);
-    printf("  st_blksize: %u\n", buf.st_blksize);
-    printf("  st_blocks: %d\n", buf.st_blocks);
+    printf("  st_blksize: %u\n", (uint32_t)buf.st_blksize);
+    printf("  st_blocks: %d\n", (int32_t)buf.st_blocks);
     printf("  st_atime: %Ld\n", buf.st_atime);
     printf("  st_mtime: %Ld\n", buf.st_mtime);
     printf("  st_ctime: %Ld\n", buf.st_ctime);

@@ -53,7 +53,6 @@ NaClFs::NaClFs(pp::Instance* instance)
     : filesystem_(new FileSystem(this)),
       core_(pp::Module::Get()->core()),
       instance_(instance) {
-  do_wrap();
   single_instance_ = this;
   pthread_mutex_init(&mutex_, NULL);
   Lock();
@@ -62,7 +61,9 @@ NaClFs::NaClFs(pp::Instance* instance)
 void NaClFs::Log(const char* message) {
   std::stringstream ss;
   ss << "E" << message;
-  NaClFs::PostMessage(pp::Var(ss.str()));
+  write_to_real_stderr(ss.str().c_str(), ss.str().size());
+  if (single_instance_)
+    NaClFs::PostMessage(pp::Var(ss.str()));
 }
 
 void NaClFs::PostMessage(const pp::Var& message) {

@@ -124,7 +124,7 @@ ssize_t PortFileSystem::Write(const void* buf, size_t nbytes) {
 
 off_t PortFileSystem::Seek(off_t offset, int whence) {
   naclfs_->Log("PortFileSystem::Seek not supported.\n");
-  return -1;
+  return 0;
 }
 
 int PortFileSystem::Fcntl(int cmd, va_list* ap) {

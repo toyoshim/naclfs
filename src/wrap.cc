@@ -31,8 +31,13 @@
 
 #include "wrap.h"
 
+#include <assert.h>
 #include <irt.h>
+#if defined(__GLIBC__)
+#  include <irt_syscalls.h>
+#endif  // defined(__GLIBC__)
 #include <stdarg.h>
+#include <string.h>
 
 #include <sstream>
 
@@ -50,7 +55,15 @@ int __wrap_open(const char* path, int oflag, mode_t cmode, int* newfd) {
   return naclfs::NaClFs::GetFileSystem()->Open(path, oflag, cmode, newfd);
 }
 
+#if defined(__GLIBC__)
+int __wrap_stat(const char* path, struct nacl_abi_stat* nacl_buf) {
+  struct stat libc_buf;
+  struct stat* buf = NULL;
+  if (NULL != nacl_buf)
+    buf = &libc_buf;
+#else  // defined(__GLIBC__)
 int __wrap_stat(const char* path, struct stat* buf) {
+#endif // defined(__GLIBC__)
   if (naclfs::NaClFs::trace()) {
     std::stringstream ss;
     ss << "enter stat:" << std::endl;
@@ -58,7 +71,22 @@ int __wrap_stat(const char* path, struct stat* buf) {
     ss << " buf=" << buf << std::endl;
     naclfs::NaClFs::Log(ss.str().c_str());
   }
-  return naclfs::NaClFs::GetFileSystem()->Stat(path, buf);
+  int result = naclfs::NaClFs::GetFileSystem()->Stat(path, buf);
+#if defined(__GLIBC__)
+  if (nacl_buf) {
+    memset(nacl_buf, 0, sizeof(struct nacl_abi_stat));
+    nacl_buf->nacl_abi_st_mode = buf->st_mode;
+    nacl_buf->nacl_abi_st_nlink = buf->st_nlink;
+    nacl_buf->nacl_abi_st_size = buf->st_size;
+    nacl_buf->nacl_abi_st_atime = buf->st_atim.tv_sec;
+    nacl_buf->nacl_abi_st_atimensec = buf->st_atim.tv_nsec;
+    nacl_buf->nacl_abi_st_mtime = buf->st_mtim.tv_sec;
+    nacl_buf->nacl_abi_st_mtimensec = buf->st_mtim.tv_nsec;
+    nacl_buf->nacl_abi_st_ctime = buf->st_ctim.tv_sec;
+    nacl_buf->nacl_abi_st_ctimensec = buf->st_mtim.tv_nsec;
+  }
+#endif // defined(__GLIBC__)
+  return result;
 }
 
 int __wrap_close(int fildes) {
@@ -69,6 +97,21 @@ int __wrap_close(int fildes) {
     naclfs::NaClFs::Log(ss.str().c_str());
   }
   return naclfs::NaClFs::GetFileSystem()->Close(fildes);
+}
+
+int __wrap_dup(int fd, int* newfd) {
+  naclfs::NaClFs::Log("XXX not impl: dup\n");
+  return 0;
+}
+
+int __wrap_dup2(int fd, int newfd) {
+  naclfs::NaClFs::Log("XXX not impl: dup2\n");
+  return 0;
+}
+
+int __wrap_fstat(int fd, struct nacl_abi_stat* nacl_buf) {
+  naclfs::NaClFs::Log("XXX not impl: fstat\n");
+  return 0;
 }
 
 int __wrap_read(int fildes, void* buf, size_t nbytes, size_t* nread) {
@@ -189,9 +232,29 @@ extern "C" int chdir(const char* path) {
   return naclfs::NaClFs::GetFileSystem()->ChDir(path);
 }
 
+int (*__nacl_irt_write_real)(int, const void*, size_t, size_t*);
+
+#if defined(__GLIBC__)
+__attribute__((constructor)) static void wrap() {
+  __nacl_irt_open = __wrap_open;
+  __nacl_irt_stat = __wrap_stat;
+  __nacl_irt_close = __wrap_close;
+  __nacl_irt_dup = __wrap_dup;
+  __nacl_irt_dup2 = __wrap_dup2;
+  __nacl_irt_fstat = __wrap_fstat;
+  __nacl_irt_read = __wrap_read;
+  __nacl_irt_write_real = __nacl_irt_write;
+  __nacl_irt_write = __wrap_write;
+  __nacl_irt_seek = __wrap_seek;
+
+  setvbuf(stdout, NULL, _IOLBF, 4096);
+}
+
+#else  // defined(__GLIBC__)
+// Use IRT structure overwriting for newlib.
 extern "C" struct nacl_irt_filename __libnacl_irt_filename;
 extern "C" struct nacl_irt_fdio __libnacl_irt_fdio;
-void do_wrap(void) {
+__attribute__((constructor)) static void wrap() {
   __libnacl_irt_filename.open = __wrap_open;
   __libnacl_irt_filename.stat = __wrap_stat;
 
@@ -199,8 +262,15 @@ void do_wrap(void) {
   //__libnacl_irt_fdio.dup = __wrap_dup;
   //__libnacl_irt_fdio.dup2 = __wrap_dup2;
   __libnacl_irt_fdio.read = __wrap_read;
+  __nacl_irt_write_real = __libnacl_irt_fdio.write;
   __libnacl_irt_fdio.write = __wrap_write;
   __libnacl_irt_fdio.seek = __wrap_seek;
   //__libnacl_irt_fdio.fstat = __wrap_fstat;
   //__libnacl_irt_fdio.getdents = __wrap_getdents;
+}
+#endif  // defined(__GLIBC__)
+
+void write_to_real_stderr(const void* buf, size_t count) {
+  size_t nwrote;
+  __nacl_irt_write_real(2, buf, count, &nwrote);
 }
