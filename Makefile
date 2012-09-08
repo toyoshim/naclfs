@@ -57,9 +57,12 @@ OBJ_OUT	:= obj/$(TC_TYPE)-$(ARCH)
 HTML	:= html/$(TC_TYPE)
 SRCS	:= src/wrap.cc src/naclfs.cc src/filesystem.cc src/port_filesystem.cc \
 	   src/html5_filesystem.cc
+CRT_SRC	:= src/naclfs_crt.cc
 OBJS	:= $(patsubst src/%.cc, $(OBJ_OUT)/%.o, $(SRCS))
+CRT_OBJ	:= $(OBJ_OUT)/naclfs_crt.o
 LIBS	:= `./bin/naclfs-config --libs $(TC_TYPE)-$(ARCH)` \
 	   -lppapi -lppapi_cpp -lpthread
+CRT_LIB	:= `./bin/naclfs-config --crt $(TC_TYPE)-$(ARCH)`
 LDFLAGS	:=
 
 .PHONY: all clean default help
@@ -71,7 +74,7 @@ all:
 
 clean:
 	@rm -rf obj html/*/*.nexe html/glibc/naclfs_tests.nmf \
-		html/glibc/lib32 html/glibc/lib64
+		html/glibc/hello.nmf html/glibc/lib32 html/glibc/lib64
 
 help:
 	@echo "make target"
@@ -96,13 +99,13 @@ help:
 glibc:
 	@$(MAKE) glibc32
 	@$(MAKE) glibc64
-glibc32: lib-message $(OBJ_OUT)/libnaclfs.so $(OBJ_OUT)/libnaclfs.a
-glibc64: lib-message $(OBJ_OUT)/libnaclfs.so $(OBJ_OUT)/libnaclfs.a
+glibc32: lib-message $(OBJ_OUT)/libnaclfs.so $(OBJ_OUT)/libnaclfs.a $(CRT_OBJ)
+glibc64: lib-message $(OBJ_OUT)/libnaclfs.so $(OBJ_OUT)/libnaclfs.a $(CRT_OBJ)
 newlib:
 	@$(MAKE) newlib32
 	@$(MAKE) newlib64
-newlib32: lib-message $(OBJ_OUT)/libnaclfs.a
-newlib64: lib-message $(OBJ_OUT)/libnaclfs.a
+newlib32: lib-message $(OBJ_OUT)/libnaclfs.a $(CRT_OBJ)
+newlib64: lib-message $(OBJ_OUT)/libnaclfs.a $(CRT_OBJ)
 lib-message:
 	@echo "*** building library to $(OBJ_OUT) ***"
 
@@ -118,14 +121,24 @@ glibctest:
 		html/glibc/naclfs_tests_x86_32.nexe \
 		html/glibc/naclfs_tests_x86_64.nexe \
 		-t glibc -s html/glibc
+	@$(NMFGEN) -D $(OBJDUMP) -o html/glibc/hello.nmf \
+		-L $(TC_PATH)/x86_64-nacl/lib32 -L $(TC_PATH)/x86_64-nacl/lib \
+		`./bin/naclfs-config --nmf` \
+		html/glibc/hello_x86_32.nexe \
+		html/glibc/hello_x86_64.nexe \
+		-t glibc -s html/glibc
 	@rm -r html/glibc/html
-glibc32test: glibc32 test-message $(HTML)/naclfs_tests_x86_32.nexe
-glibc64test: glibc64 test-message $(HTML)/naclfs_tests_x86_64.nexe
+glibc32test: glibc32 test-message \
+	$(HTML)/naclfs_tests_x86_32.nexe $(HTML)/hello_x86_32.nexe
+glibc64test: glibc64 test-message \
+	$(HTML)/naclfs_tests_x86_64.nexe $(HTML)/hello_x86_64.nexe
 newlibtest:
 	@$(MAKE) newlib32test
 	@$(MAKE) newlib64test
-newlib32test: newlib32 test-message $(HTML)/naclfs_tests_x86_32.nexe
-newlib64test: newlib64 test-message $(HTML)/naclfs_tests_x86_64.nexe
+newlib32test: newlib32 test-message \
+	$(HTML)/naclfs_tests_x86_32.nexe $(HTML)/hello_x86_32.nexe
+newlib64test: newlib64 test-message \
+	$(HTML)/naclfs_tests_x86_64.nexe $(HTML)/hello_x86_64.nexe
 test-message:
 	@echo "*** building test to $(OBJ_OUT) ***"
 
@@ -153,6 +166,14 @@ $(HTML)/naclfs_tests_x86_32.nexe: $(OBJ_OUT)/naclfs_tests.o
 	@echo "linking $@ ..."
 	@$(CXX) $(LDFLAGS) -o $@ $< $(LIBS)
 
+$(HTML)/hello_x86_32.nexe: $(OBJ_OUT)/hello.o
+	@echo "linking $@ ..."
+	@$(CXX) $(LDFLAGS) -o $@ $< $(CRT_LIB) $(LIBS)
+
 $(HTML)/naclfs_tests_x86_64.nexe: $(OBJ_OUT)/naclfs_tests.o
 	@echo "linking $@ ..."
 	@$(CXX) $(LDFLAGS) -o $@ $< $(LIBS)
+
+$(HTML)/hello_x86_64.nexe: $(OBJ_OUT)/hello.o
+	@echo "linking $@ ..."
+	@$(CXX) $(LDFLAGS) -o $@ $< $(CRT_LIB) $(LIBS)
