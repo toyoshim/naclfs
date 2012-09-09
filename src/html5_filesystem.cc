@@ -336,6 +336,46 @@ int Html5FileSystem::CloseCall(Arguments* arguments) {
   return 0;
 }
 
+int Html5FileSystem::FstatCall(Arguments* arguments, struct stat* buf) {
+  if (waiting_) {
+    waiting_ = false;
+    if (arguments->result.callback)
+      return -1;
+    if (NULL == buf)
+      return 0;
+    memset(buf, 0, sizeof(struct stat));
+    buf->st_mode = S_IRUSR | S_IWUSR | S_IXUSR;
+    buf->st_size = file_info_.size;
+    buf->st_atime = file_info_.last_access_time;
+    buf->st_mtime = file_info_.last_modified_time;
+    buf->st_ctime = file_info_.creation_time;
+    buf->st_blksize = 512;  // pseudo value for compatilibity
+    buf->st_blocks = (file_info_.size + 511) >> 9;
+    switch (file_info_.type) {
+      case PP_FILETYPE_REGULAR:
+        buf->st_mode |= S_IFREG;
+        break;
+      case PP_FILETYPE_DIRECTORY:
+        buf->st_mode |= S_IFDIR;
+        break;
+      case PP_FILETYPE_OTHER:
+      default:
+        break;
+    }
+    return 0;
+  }
+
+  if (file_io_->Query(&file_info_, callback_) != PP_OK_COMPLETIONPENDING) {
+    naclfs_->Log(
+        "Html5FileSystem::Query doesn't return PP_OK_COMPLETIONPENDING\n");
+    return -1;
+  }
+  waiting_ = true;
+  arguments->chaining = true;
+  return 0;
+}
+
+
 ssize_t Html5FileSystem::ReadCall(Arguments* arguments,
                                   void* buf,
                                   size_t nbytes) {

@@ -98,6 +98,17 @@ int FileSystem::Delegate::Close() {
   return arguments.result.close;
 }
 
+int FileSystem::Delegate::Fstat(struct stat* buf) {
+  if (core_->IsMainThread())
+    return -1;
+  Arguments arguments;
+  arguments.delegate = this;
+  arguments.function = FSTAT;
+  arguments.u.fstat.buf = buf;
+  Call(arguments);
+  return arguments.result.fstat;
+}
+
 ssize_t FileSystem::Delegate::Read(void* buf, size_t nbytes) {
   if (core_->IsMainThread())
     return -1;
@@ -243,6 +254,11 @@ void FileSystem::Delegate::Switch(Arguments* arguments) {
       arguments->result.close =
           arguments->delegate->CloseCall(arguments);
       break;
+    case FSTAT:
+      arguments->result.fstat =
+          arguments->delegate->FstatCall(arguments,
+                                         arguments->u.fstat.buf);
+      break;
     case READ:
       arguments->result.read =
           arguments->delegate->ReadCall(arguments,
@@ -351,6 +367,13 @@ int FileSystem::Close(int fildes) {
     return result;
   DeleteDescriptor(fildes);
   return result;
+}
+
+int FileSystem::Fstat(int fildes, struct stat* buf) {
+  Delegate* delegate = GetDelegate(fildes);
+  if (!delegate)
+    return -1;
+  return delegate->Fstat(buf);
 }
 
 ssize_t FileSystem::Read(int fildes, void* buf, size_t nbytes) {

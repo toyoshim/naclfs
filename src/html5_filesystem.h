@@ -66,6 +66,7 @@ class Html5FileSystem : public FileSystem::Delegate {
                        const char* path,
                        struct stat* buf);
   virtual int CloseCall(Arguments* arguments);
+  virtual int FstatCall(Arguments* arguments, struct stat* buf);
   virtual ssize_t ReadCall(Arguments* arguments, void* buf, size_t nbytes);
   virtual ssize_t WriteCall(Arguments* arguments,
                             const void* buf,

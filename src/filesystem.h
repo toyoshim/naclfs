@@ -65,6 +65,7 @@ class FileSystem {
       OPEN,
       STAT,
       CLOSE,
+      FSTAT,
       READ,
       WRITE,
       SEEK,
@@ -88,7 +89,10 @@ class FileSystem {
         struct {
           const char* path;
           struct stat* buf;
-       	} stat;
+        } stat;
+        struct {
+          struct stat* buf;
+        } fstat;
         struct {
           void* buf;
           size_t nbytes;
@@ -127,6 +131,7 @@ class FileSystem {
         int open;
         int stat;
         int close;
+        int fstat;
         ssize_t read;
         ssize_t write;
         off_t seek;
@@ -143,6 +148,7 @@ class FileSystem {
     virtual int Open(const char* path, int oflag, mode_t cmode);
     virtual int Stat(const char* path, struct stat* buf);
     virtual int Close();
+    virtual int Fstat(struct stat* buf);
     virtual ssize_t Read(void* buf, size_t nbytes);
     virtual ssize_t Write(const void* buf, size_t nbytes);
     virtual off_t Seek(off_t offset, int whence);
@@ -161,6 +167,8 @@ class FileSystem {
                          const char* path,
                          struct stat* buf) { return -1; }
     virtual int CloseCall(Arguments* arguments) { return -1; }
+    virtual int FstatCall(Arguments* arguments,
+                          struct stat* buf) { return -1; }
     virtual ssize_t ReadCall(Arguments* arguments,
                              void* buf,
                              size_t nbytes) { return -1; }
@@ -216,6 +224,7 @@ class FileSystem {
   int Open(const char* path, int oflag, mode_t cmode, int* newfd);
   int Stat(const char* path, struct stat* buf);
   int Close(int fildes);
+  int Fstat(int fildes, struct stat* buf);
   ssize_t Read(int fildes, void* buf, size_t nbytes);
   ssize_t Write(int fildes, const void* buf, size_t nbytes);
   off_t Seek(int fildes, off_t offset, int whence);

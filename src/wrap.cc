@@ -109,10 +109,40 @@ int __wrap_dup2(int fd, int newfd) {
   return 0;
 }
 
+#if defined(__GLIBC__)
 int __wrap_fstat(int fd, struct nacl_abi_stat* nacl_buf) {
-  naclfs::NaClFs::Log("XXX not impl: fstat\n");
-  return 0;
+  struct stat libc_buf;
+  struct stat* buf = NULL;
+  if (NULL != nacl_buf)
+    buf = &libc_buf;
+#else  // defined(__GLIBC__)
+int __wrap_fstat(int fd, struct stat* buf) {
+#endif // defined(__GLIBC__)
+  if (naclfs::NaClFs::trace()) {
+    std::stringstream ss;
+    ss << "enter fstat:" << std::endl;
+    ss << " fd=" << fd << std::endl;
+    ss << " buf=" << buf << std::endl;
+    naclfs::NaClFs::Log(ss.str().c_str());
+  }
+  int result = naclfs::NaClFs::GetFileSystem()->Fstat(fd, buf);
+#if defined(__GLIBC__)
+  if (nacl_buf) {
+    memset(nacl_buf, 0, sizeof(struct nacl_abi_stat));
+    nacl_buf->nacl_abi_st_mode = buf->st_mode;
+    nacl_buf->nacl_abi_st_nlink = buf->st_nlink;
+    nacl_buf->nacl_abi_st_size = buf->st_size;
+    nacl_buf->nacl_abi_st_atime = buf->st_atim.tv_sec;
+    nacl_buf->nacl_abi_st_atimensec = buf->st_atim.tv_nsec;
+    nacl_buf->nacl_abi_st_mtime = buf->st_mtim.tv_sec;
+    nacl_buf->nacl_abi_st_mtimensec = buf->st_mtim.tv_nsec;
+    nacl_buf->nacl_abi_st_ctime = buf->st_ctim.tv_sec;
+    nacl_buf->nacl_abi_st_ctimensec = buf->st_mtim.tv_nsec;
+  }
+#endif // defined(__GLIBC__)
+  return result;
 }
+
 
 int __wrap_read(int fildes, void* buf, size_t nbytes, size_t* nread) {
   if (fildes > 2 && naclfs::NaClFs::trace()) {
@@ -265,7 +295,7 @@ __attribute__((constructor)) static void wrap() {
   __nacl_irt_write_real = __libnacl_irt_fdio.write;
   __libnacl_irt_fdio.write = __wrap_write;
   __libnacl_irt_fdio.seek = __wrap_seek;
-  //__libnacl_irt_fdio.fstat = __wrap_fstat;
+  __libnacl_irt_fdio.fstat = __wrap_fstat;
   //__libnacl_irt_fdio.getdents = __wrap_getdents;
 }
 #endif  // defined(__GLIBC__)
