@@ -30,6 +30,7 @@
 //
 
 #include <stdio.h>
+#include <string.h>
 #include <sys/fcntl.h>
 
 #include "naclfs.h"
@@ -38,6 +39,22 @@
 #include "ppapi/cpp/var.h"
 
 extern "C" int naclfs_main(int argc, const char *argv[]);
+
+namespace {
+  const char* default_args[] = {
+    "(naclfs application)"
+  };
+
+  const char* find_arg(const char* key,
+                       uint32_t argc,
+                       const char* argn[],
+                       const char* argv[]) {
+    for (uint32_t i = 0; i < argc; ++i)
+      if (!strcmp(key, argn[i]))
+        return argv[i];
+    return NULL;
+  }
+}
 
 namespace naclfs {
 
@@ -50,15 +67,34 @@ class NaClFsInstance: public pp::Instance {
   virtual ~NaClFsInstance() {
     pthread_join(thread_, NULL);
     delete naclfs_;
+    if (argv_ != default_args)
+      free(argv_);
   }
   virtual bool Init(uint32_t argc, const char* argn[], const char* argv[]) {
-    argc_ = argc;
-    argv_ = argv;
+    argc_ = 1;
+    argv_ = default_args;
     open("/dev/stdin", O_RDONLY);
     open("/dev/stdout", O_WRONLY);
     open("/dev/stderr", O_WRONLY);
     naclfs_->set_trace(true);
-    puts("xxx");
+    puts("xxx"); // TODO: remove this hack for console.
+    const char* argc_str = find_arg("argc", argc, argn, argv);
+    uint32_t new_argc = 0;
+    if (argc_str)
+      new_argc = atoi(argc_str);
+    if (new_argc) {
+      argc_ = new_argc;
+      argv_ = static_cast<const char**>(malloc(sizeof(const char*) * argc_));
+      char argname[64];
+      for (uint32_t i = 0; i < argc_; ++i) {
+        snprintf(argname, 64, "argv%d", i);
+        const char* argv_str = find_arg(argname, argc, argn, argv);
+        if (argv_str)
+          argv_[i] = argv_str;
+        else
+          argv_[i] = "(naclfs argv not found)";
+      }
+    }
     pthread_create(&thread_, NULL, ThreadMain, this);
     return true;
   }
