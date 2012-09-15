@@ -6,6 +6,7 @@ extern "C" int main(int argc, char **argv) {
   for (i = 0; i < argc; ++i)
     printf("argv[%d] = %s\n", i, argv[i]);
   puts("hello");
+  fprintf(stderr, "hello\n");
   return 0;
 }
 

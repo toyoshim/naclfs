@@ -271,11 +271,11 @@ __attribute__((constructor)) static void wrap() {
   __nacl_irt_close = __wrap_close;
   __nacl_irt_dup = __wrap_dup;
   __nacl_irt_dup2 = __wrap_dup2;
-  __nacl_irt_fstat = __wrap_fstat;
   __nacl_irt_read = __wrap_read;
   __nacl_irt_write_real = __nacl_irt_write;
   __nacl_irt_write = __wrap_write;
   __nacl_irt_seek = __wrap_seek;
+  __nacl_irt_fstat = __wrap_fstat;
 
   setvbuf(stdout, NULL, _IOLBF, 4096);
   setvbuf(stderr, NULL, _IOLBF, 4096);

@@ -404,6 +404,8 @@ ssize_t Html5FileSystem::WriteCall(Arguments* arguments,
     waiting_ = false;
     if (arguments->result.callback > 0)
       offset_ += arguments->result.callback;
+    if (file_info_.size < offset_)
+      file_info_.size = offset_;
     return arguments->result.callback;
   }
 
