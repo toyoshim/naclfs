@@ -77,7 +77,9 @@ class NaClFsInstance: public pp::Instance {
     open("/dev/stdout", O_WRONLY);
     open("/dev/stderr", O_WRONLY);
     naclfs_->set_trace(true);
-    puts("xxx"); // TODO: remove this hack for console.
+    // TODO: remove following two lines hack for console.
+    puts("xxx");
+    fprintf(stderr, "xxx\n");
     const char* argc_str = find_arg("argc", argc, argn, argv);
     uint32_t new_argc = 0;
     if (argc_str)

@@ -278,6 +278,7 @@ __attribute__((constructor)) static void wrap() {
   __nacl_irt_seek = __wrap_seek;
 
   setvbuf(stdout, NULL, _IOLBF, 4096);
+  setvbuf(stderr, NULL, _IOLBF, 4096);
 }
 
 #else  // defined(__GLIBC__)
