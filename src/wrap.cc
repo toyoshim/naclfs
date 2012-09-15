@@ -38,6 +38,8 @@
 #endif  // defined(__GLIBC__)
 #include <stdarg.h>
 #include <string.h>
+#include <sys/param.h>
+#include <unistd.h>
 
 #include <sstream>
 
@@ -267,6 +269,21 @@ extern "C" int chdir(const char* path) {
     naclfs::NaClFs::Log(ss.str().c_str());
   }
   return naclfs::NaClFs::GetFileSystem()->ChDir(path);
+}
+
+extern "C" char* getcwd(char* buf, size_t size) {
+  if (naclfs::NaClFs::trace()) {
+    std::stringstream ss;
+    ss << "enter getcwd:" << std::endl;
+    ss << " buf=" << buf << std::endl;
+    ss << " size=" << size << std::endl;
+    naclfs::NaClFs::Log(ss.str().c_str());
+  }
+  return naclfs::NaClFs::GetFileSystem()->GetCwd(buf, size);
+}
+
+extern "C" char* getwd(char* buf) {
+  return getcwd(buf, MAXPATHLEN);
 }
 
 int (*__nacl_irt_write_real)(int, const void*, size_t, size_t*);

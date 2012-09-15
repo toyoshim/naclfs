@@ -484,6 +484,21 @@ int FileSystem::ChDir(const char* path) {
   return 0;
 }
 
+char* FileSystem::GetCwd(char* buf, size_t size) {
+  if (!buf || !size) {
+    errno = EINVAL;
+    return NULL;
+  }
+  size_t cwd_size = cwd_.size() + 2;
+  if (size < cwd_size) {
+    errno = ERANGE;
+    return NULL;
+  }
+  buf[0] = '/';
+  strcpy(&buf[1], cwd_.c_str());
+  return buf;
+}
+
 bool FileSystem::HandleMessage(const pp::Var& message) {
   std::stringstream ss;
   ss << "HandleMessage: " << message.AsString().c_str();
@@ -499,8 +514,18 @@ bool FileSystem::HandleMessage(const pp::Var& message) {
 void FileSystem::CreateFullpath(const char* path, std::string* fullpath) {
   // Insert current path to a relative path.
   std::vector<std::string> paths;
-  if (*path != '/' && cwd_.size())
-    paths.push_back(cwd_);
+  if (*path != '/' && cwd_.size()) {
+    size_t offset = 0;
+    for (;;) {
+      size_t next_offset = cwd_.find("/", offset);
+      if (next_offset == std::string::npos) {
+        paths.push_back(cwd_.substr(offset));
+        break;
+      }
+      paths.push_back(cwd_.substr(offset, next_offset - offset));
+      offset = next_offset + 1;
+    }
+  }
 
   // Split path into a string vector.
   for (const char* caret = path; *caret != 0; ) {

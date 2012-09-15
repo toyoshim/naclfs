@@ -282,31 +282,50 @@ bool test_SystemCall_Chdir() {
   mkdir(fpath2, S_IRUSR | S_IWUSR);
   fclose(fopen(fname, "a+"));
 
+  char path[1024];
+  if (strcmp("/", getcwd(path, 1024)))
+    ERROR("initial path is not /");
+
   if (chdir("/"))
     ERROR("chdir to / failed");
+  if (strcmp("/", getcwd(path, 1024)))
+    ERROR("getcwd doesn't show /");
   if (chdir("test_path/child_dir"))
     ERROR("chdir to test_path/child_dir");
+  if (strcmp("/test_path/child_dir", getcwd(path, 1024)))
+    ERROR("getcwd doesn't show /test_path/child_dir");
   if (chdir("../..")) {
     chdir("/");
     ERROR("chdir to ../..");
   }
-  if (chdir("test_path/child_dir/"))
-    ERROR("chdir to test_path/child_dir/");
+  if (strcmp("/", getcwd(path, 1024)))
+    ERROR("getcwd doesn't show /");
+  if (chdir("/test_path/child_dir/"))
+    ERROR("chdir to /test_path/child_dir/");
+  if (strcmp("/test_path/child_dir", getcwd(path, 1024)))
+    ERROR("getcwd doesn't show /test_path/child_dir");
   struct stat buf;
-  // TODO: "../hello" doesn't work.
-  //if (stat("../hello", &buf))
-  //  ERROR("stat on ../hello failed");
-  // TODO: chdir("..") doesn't work.
-  if (chdir("/test_path")) { // work around
+  if (stat("../hello", &buf)) {
+    chdir("/");
+    ERROR("stat on ../hello failed");
+  }
+  if (chdir("..")) {
     chdir("/");
     ERROR("chdir to ..");
   }
-  if (stat("hello", &buf)) {
+  if (strcmp("/test_path", getcwd(path, 1024)))
+    ERROR("getcwd doesn't show /test_path");
+  if (stat("./hello", &buf)) {
     chdir("/");
     ERROR("stat on hello failed");
   }
+  if (chdir("../")) {
+    chdir("/");
+    ERROR("chdir to ../");
+  }
+  if (strcmp("/", getcwd(path, 1024)))
+    ERROR("getcwd doesn't show /");
 
-  chdir("/");
   return true;
 }
 

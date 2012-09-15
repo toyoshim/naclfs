@@ -235,6 +235,7 @@ class FileSystem {
   struct dirent* ReadDir(DIR* dirp);
   int CloseDir(DIR* dirp);
   int ChDir(const char* path);
+  char* GetCwd(char* buf, size_t size);
 
   static bool HandleMessage(const pp::Var& message);
 
