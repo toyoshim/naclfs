@@ -158,10 +158,22 @@ bool test_SystemCall_WriteStandards() {
 }
 
 bool test_SystemCall_StatStandards() {
-  // TODO: Doesn't work.
   struct stat buf;
+  mode_t expected_mode = S_IFCHR | S_IRUSR | S_IWUSR;
   if (stat("/dev/stdin", &buf))
     ERROR("can not stat on /dev/stdin");
+  if (buf.st_mode != expected_mode)
+    ERROR("invalid st_mode on /dev/stdin");
+
+  if (stat("/dev/stdout", &buf))
+    ERROR("can not stat on /dev/stdout");
+  if (buf.st_mode != expected_mode)
+    ERROR("invalid st_mode on /dev/stdout");
+
+  if (stat("/dev/stderr", &buf))
+    ERROR("can not stat on /dev/stderr");
+  if (buf.st_mode != expected_mode)
+    ERROR("invalid st_mode on /dev/stderr");
 
   return true;
 }
@@ -324,8 +336,10 @@ bool test_POSIX_OpenAndCloseStandards() {
 bool test_POSIX_WriteStandards() {
   if (5 != fprintf(stdout, "%s", "+++++"))
     ERROR("can not fprintf to stdout");
+  fflush(stdout);
   if (5 != fprintf(stderr, "%s", "+++++"))
     ERROR("can not fprintf to stderr");
+  fflush(stderr);
 
   FILE* fp;
   fp = fopen("/dev/stdout", "a");
@@ -367,7 +381,7 @@ extern "C" int naclfs_main(int argc, char** argv) {
 
   REGISTER_TEST(SystemCall, OpenAndCloseStandards);
   REGISTER_TEST(SystemCall, WriteStandards);
-  SKIP_REGISTER_TEST(SystemCall, StatStandards);
+  REGISTER_TEST(SystemCall, StatStandards);
   REGISTER_TEST(SystemCall, ReadLseekAndWriteFile);
   REGISTER_TEST(SystemCall, CreateAndStatFile);
   REGISTER_TEST(SystemCall, CreateAndStatDirectory);

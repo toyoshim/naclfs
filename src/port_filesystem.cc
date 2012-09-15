@@ -32,10 +32,11 @@
 #include "port_filesystem.h"
 
 #include <fcntl.h>
-#include <sstream>
 #include <stdarg.h>
 #include <string.h>
 #include <unistd.h>
+
+#include <sstream>
 
 #include "naclfs.h"
 #include "ppapi/cpp/var.h"
@@ -60,19 +61,19 @@ PortFileSystem::~PortFileSystem() {
 }
 
 int PortFileSystem::Open(const char* path, int oflag, mode_t cmode) {
-  if (strcmp(path, kStdInPath) == 0) {
+  if (!strcmp(path, kStdInPath)) {
     id_ = STDIN_FILENO;
     readable_ = true;
     if (oflag != O_RDONLY)
       naclfs_->Log(
           "PortFileSystem: ignore oflag which doesn't match for stdin.\n");
-  } else if (strcmp(path, kStdOutPath) == 0) {
+  } else if (!strcmp(path, kStdOutPath)) {
     id_ = STDOUT_FILENO;
     writable_ = true;
     if (oflag != O_WRONLY)
       naclfs_->Log(
           "PortFileSystem: ignore oflag which doesn't match for stdout.\n");
-  } else if (strcmp(path, kStdErrPath) == 0) {
+  } else if (!strcmp(path, kStdErrPath)) {
     id_ = STDERR_FILENO;
     writable_ = true;
     if (oflag != O_WRONLY)
@@ -88,9 +89,30 @@ int PortFileSystem::Open(const char* path, int oflag, mode_t cmode) {
   return 0;
 }
 
+int PortFileSystem::Stat(const char* path, struct stat* buf) {
+  if (strcmp(path, kStdInPath) &&
+      strcmp(path, kStdOutPath) &&
+      strcmp(path, kStdErrPath)) {
+    std::stringstream ss;
+    ss << "PortFileSystem: can not open unknown device name: " << path
+       << std::endl;
+    naclfs_->Log(ss.str().c_str());
+    return ENODEV;
+  }
+  memset(buf, 0, sizeof(struct stat));
+  buf->st_mode = S_IFCHR | S_IRUSR | S_IWUSR;
+  return 0;
+}
+
 int PortFileSystem::Close() {
   if (id_ < 0)
     return -1;
+  return 0;
+}
+
+int PortFileSystem::Fstat(struct stat* buf) {
+  memset(buf, 0, sizeof(struct stat));
+  buf->st_mode = S_IFCHR | S_IRUSR | S_IWUSR;
   return 0;
 }
 

@@ -317,7 +317,7 @@ int Html5FileSystem::StatCall(Arguments* arguments,
 
   file_ref_ = new pp::FileRef(*filesystem_, path);
   file_io_ = new pp::FileIO(naclfs_->GetInstance());
-  uint32_t result = file_io_->Open(*file_ref_, 0, callback_);
+  int32_t result = file_io_->Open(*file_ref_, 0, callback_);
   if (result != PP_OK_COMPLETIONPENDING) {
     naclfs_->Log(
         "Html5FileSystem::Open doesn't return PP_OK_COMPLETIONPENDING\n");
@@ -360,7 +360,7 @@ int Html5FileSystem::FstatCall(Arguments* arguments, struct stat* buf) {
     return 0;
   }
 
-  uint32_t result = file_io_->Query(&file_info_, callback_);
+  int32_t result = file_io_->Query(&file_info_, callback_);
   if (result != PP_OK_COMPLETIONPENDING) {
     naclfs_->Log(
         "Html5FileSystem::Query doesn't return PP_OK_COMPLETIONPENDING\n");
