@@ -71,6 +71,8 @@ int __wrap_stat(const char* path, struct stat* buf) {
     ss << " buf=" << buf << std::endl;
     naclfs::NaClFs::Log(ss.str().c_str());
   }
+  if (!path || !buf)
+    return EFAULT;
   int result = naclfs::NaClFs::GetFileSystem()->Stat(path, buf);
 #if defined(__GLIBC__)
   if (nacl_buf) {
@@ -127,6 +129,8 @@ int __wrap_fstat(int fd, struct stat* buf) {
     ss << " buf=" << buf << std::endl;
     naclfs::NaClFs::Log(ss.str().c_str());
   }
+  if (!buf)
+    return EFAULT;
   int result = naclfs::NaClFs::GetFileSystem()->Fstat(fd, buf);
 #if defined(__GLIBC__)
   if (nacl_buf) {
@@ -146,7 +150,6 @@ int __wrap_fstat(int fd, struct stat* buf) {
 #endif // defined(__GLIBC__)
   return result;
 }
-
 
 int __wrap_read(int fildes, void* buf, size_t nbytes, size_t* nread) {
   if (fildes > 2 && naclfs::NaClFs::trace()) {

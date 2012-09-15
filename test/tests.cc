@@ -35,6 +35,7 @@
 #include <sstream>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/stat.h>
 
 #include <vector>
@@ -230,7 +231,12 @@ bool test_SystemCall_CreateAndStatFile() {
 
   if (-1 != stat("/test_create_ng", &buf))
     ERROR("unexpected successful stat on /test_create_ng");
-  // TODO: errno should be set correctly.
+  if (ENOENT != errno)
+    ERROR("ENOENT is expected on stat");
+  if (-1 != stat("/test_create_ng/no_path", &buf))
+    ERROR("unexpected successful stat on /test_create_ng/no_path");
+  if (ENOENT != errno)
+    ERROR("ENOENT is expected on stat");
 
   return true;
 }

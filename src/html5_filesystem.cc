@@ -273,7 +273,7 @@ int Html5FileSystem::StatCall(Arguments* arguments,
     }
 
     if (arguments->result.callback)
-      return -1;
+      return PPErrorToErrNo(arguments->result.callback);
     querying_ = true;
     arguments->chaining = true;
     file_io_->Query(&file_info_, callback_);
@@ -283,8 +283,6 @@ int Html5FileSystem::StatCall(Arguments* arguments,
   if (remoting_) {
     remoting_ = false;
     rpc_object_ = NULL;
-    if (!buf)
-      return 0;
     memset(buf, 0, sizeof(struct stat));
     if (!arguments->result.callback)
       buf->st_mode = S_IRUSR | S_IWUSR | S_IXUSR | S_IFDIR;
@@ -294,9 +292,7 @@ int Html5FileSystem::StatCall(Arguments* arguments,
   if (querying_) {
     querying_ = false;
     if (arguments->result.callback)
-      return -1;
-    if (NULL == buf)
-      return 0;
+      return PPErrorToErrNo(arguments->result.callback);
     memset(buf, 0, sizeof(struct stat));
     buf->st_mode = S_IRUSR | S_IWUSR | S_IXUSR;
     buf->st_size = file_info_.size;
@@ -321,10 +317,11 @@ int Html5FileSystem::StatCall(Arguments* arguments,
 
   file_ref_ = new pp::FileRef(*filesystem_, path);
   file_io_ = new pp::FileIO(naclfs_->GetInstance());
-  if (file_io_->Open(*file_ref_, 0, callback_) != PP_OK_COMPLETIONPENDING) {
+  uint32_t result = file_io_->Open(*file_ref_, 0, callback_);
+  if (result != PP_OK_COMPLETIONPENDING) {
     naclfs_->Log(
         "Html5FileSystem::Open doesn't return PP_OK_COMPLETIONPENDING\n");
-    return -1;
+    return PPErrorToErrNo(result);
   }
   waiting_ = true;
   arguments->chaining = true;
@@ -340,9 +337,7 @@ int Html5FileSystem::FstatCall(Arguments* arguments, struct stat* buf) {
   if (waiting_) {
     waiting_ = false;
     if (arguments->result.callback)
-      return -1;
-    if (NULL == buf)
-      return 0;
+      PPErrorToErrNo(arguments->result.callback);
     memset(buf, 0, sizeof(struct stat));
     buf->st_mode = S_IRUSR | S_IWUSR | S_IXUSR;
     buf->st_size = file_info_.size;
@@ -365,16 +360,16 @@ int Html5FileSystem::FstatCall(Arguments* arguments, struct stat* buf) {
     return 0;
   }
 
-  if (file_io_->Query(&file_info_, callback_) != PP_OK_COMPLETIONPENDING) {
+  uint32_t result = file_io_->Query(&file_info_, callback_);
+  if (result != PP_OK_COMPLETIONPENDING) {
     naclfs_->Log(
         "Html5FileSystem::Query doesn't return PP_OK_COMPLETIONPENDING\n");
-    return -1;
+    return PPErrorToErrNo(result);
   }
   waiting_ = true;
   arguments->chaining = true;
   return 0;
 }
-
 
 ssize_t Html5FileSystem::ReadCall(Arguments* arguments,
                                   void* buf,
