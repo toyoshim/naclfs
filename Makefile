@@ -74,7 +74,8 @@ all:
 
 clean:
 	@rm -rf obj html/*/*.nexe html/glibc/naclfs_tests.nmf \
-		html/glibc/hello.nmf html/glibc/lib32 html/glibc/lib64
+		html/glibc/tests.nmf html/glibc/hello.nmf \
+		html/glibc/lib32 html/glibc/lib64
 
 help:
 	@echo "make target"
@@ -121,6 +122,12 @@ glibctest:
 		html/glibc/naclfs_tests_x86_32.nexe \
 		html/glibc/naclfs_tests_x86_64.nexe \
 		-t glibc -s html/glibc
+	@$(NMFGEN) -D $(OBJDUMP) -o html/glibc/tests.nmf \
+		-L $(TC_PATH)/x86_64-nacl/lib32 -L $(TC_PATH)/x86_64-nacl/lib \
+		`./bin/naclfs-config --nmf` \
+		html/glibc/tests_x86_32.nexe \
+		html/glibc/tests_x86_64.nexe \
+		-t glibc -s html/glibc
 	@$(NMFGEN) -D $(OBJDUMP) -o html/glibc/hello.nmf \
 		-L $(TC_PATH)/x86_64-nacl/lib32 -L $(TC_PATH)/x86_64-nacl/lib \
 		`./bin/naclfs-config --nmf` \
@@ -129,16 +136,20 @@ glibctest:
 		-t glibc -s html/glibc
 	@rm -r html/glibc/html
 glibc32test: glibc32 test-message \
-	$(HTML)/naclfs_tests_x86_32.nexe $(HTML)/hello_x86_32.nexe
+	$(HTML)/naclfs_tests_x86_32.nexe \
+	$(HTML)/tests_x86_32.nexe $(HTML)/hello_x86_32.nexe
 glibc64test: glibc64 test-message \
-	$(HTML)/naclfs_tests_x86_64.nexe $(HTML)/hello_x86_64.nexe
+	$(HTML)/naclfs_tests_x86_64.nexe \
+	$(HTML)/tests_x86_64.nexe $(HTML)/hello_x86_64.nexe
 newlibtest:
 	@$(MAKE) newlib32test
 	@$(MAKE) newlib64test
 newlib32test: newlib32 test-message \
-	$(HTML)/naclfs_tests_x86_32.nexe $(HTML)/hello_x86_32.nexe
+	$(HTML)/naclfs_tests_x86_32.nexe \
+	$(HTML)/tests_x86_32.nexe $(HTML)/hello_x86_32.nexe
 newlib64test: newlib64 test-message \
-	$(HTML)/naclfs_tests_x86_64.nexe $(HTML)/hello_x86_64.nexe
+	$(HTML)/naclfs_tests_x86_64.nexe \
+	$(HTML)/tests_x86_64.nexe $(HTML)/hello_x86_64.nexe
 test-message:
 	@echo "*** building test to $(OBJ_OUT) ***"
 
@@ -153,18 +164,22 @@ $(OBJ_OUT)/libnaclfs.a: $(OBJS)
 	@$(RANLIB) $@
 
 $(OBJ_OUT)/%.o: src/%.cc
-	@echo "compiling ... " $<
+	@echo "compiling ..." $<
 	@mkdir -p $(@D)
 	@$(CXX) -c $(CFLAGS) -o $@ -c $<
 
 $(OBJ_OUT)/%.o: test/%.cc
-	@echo "compiling ... " $<
+	@echo "compiling ..." $<
 	@mkdir -p $(@D)
 	@$(CXX) -c $(CFLAGS) -o $@ -c $<
 
 $(HTML)/naclfs_tests_x86_32.nexe: $(OBJ_OUT)/naclfs_tests.o
 	@echo "linking $@ ..."
 	@$(CXX) $(LDFLAGS) -o $@ $< $(LIBS)
+
+$(HTML)/tests_x86_32.nexe: $(OBJ_OUT)/tests.o
+	@echo "linking $@ ..."
+	@$(CXX) $(LDFLAGS) -o $@ $< $(CRT_LIB) $(LIBS)
 
 $(HTML)/hello_x86_32.nexe: $(OBJ_OUT)/hello.o
 	@echo "linking $@ ..."
@@ -173,6 +188,10 @@ $(HTML)/hello_x86_32.nexe: $(OBJ_OUT)/hello.o
 $(HTML)/naclfs_tests_x86_64.nexe: $(OBJ_OUT)/naclfs_tests.o
 	@echo "linking $@ ..."
 	@$(CXX) $(LDFLAGS) -o $@ $< $(LIBS)
+
+$(HTML)/tests_x86_64.nexe: $(OBJ_OUT)/tests.o
+	@echo "linking $@ ..."
+	@$(CXX) $(LDFLAGS) -o $@ $< $(CRT_LIB) $(LIBS)
 
 $(HTML)/hello_x86_64.nexe: $(OBJ_OUT)/hello.o
 	@echo "linking $@ ..."
