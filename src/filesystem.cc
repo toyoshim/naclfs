@@ -50,14 +50,14 @@ static const char kPortFileSystemPrefix[] = "/dev/std";
 static size_t kPortFileSystemPrefixSize = sizeof(kPortFileSystemPrefix) - 1;
 
 bool FileSystem::Delegate::initialized_ = false;
-sem_t FileSystem::Delegate::sem_;
+pthread_mutex_t FileSystem::Delegate::mutex_ = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t FileSystem::Delegate::cond_ = PTHREAD_COND_INITIALIZER;
 pp::Core* FileSystem::Delegate::core_;
 
 FileSystem::Delegate::Delegate() {
   if (initialized_)
     return;
   initialized_ = true;
-  sem_init(&sem_, 0, 0);
   core_ = pp::Module::Get()->core();
 }
 
@@ -212,18 +212,22 @@ int FileSystem::Delegate::CloseDir(DIR* dirp) {
   return arguments.result.closedir;
 }
 
-void FileSystem::Delegate::Lock() {
-  sem_wait(&sem_);
+void FileSystem::Delegate::Wait() {
+  pthread_mutex_lock(&mutex_);
+  pthread_cond_wait(&cond_, &mutex_);
+  pthread_mutex_unlock(&mutex_);
 }
 
-void FileSystem::Delegate::Unlock() {
-  sem_post(&sem_);
+void FileSystem::Delegate::Signal() {
+  pthread_mutex_lock(&mutex_);
+  pthread_cond_signal(&cond_);
+  pthread_mutex_unlock(&mutex_);
 }
 
 void FileSystem::Delegate::Call(Arguments& arguments) {
   callback_ = pp::CompletionCallback(Proxy, &arguments);
   core_->CallOnMainThread(0, pp::CompletionCallback(Proxy, &arguments));
-  Lock();
+  Wait();
 }
 
 void FileSystem::Delegate::Proxy(void* param, int32_t result) {
@@ -232,7 +236,7 @@ void FileSystem::Delegate::Proxy(void* param, int32_t result) {
   arguments->chaining = false;
   arguments->delegate->Switch(arguments);
   if (!arguments->chaining)
-    arguments->delegate->Unlock();
+    arguments->delegate->Signal();
 }
 
 void FileSystem::Delegate::Switch(Arguments* arguments) {

@@ -53,6 +53,7 @@ class FileSystem;
 class NaClFs {
  public:
   NaClFs(pp::Instance* instance);
+  ~NaClFs();
 
   static bool trace() { return trace_; }
   static void set_trace(bool enable) { trace_ = enable; }
@@ -66,8 +67,8 @@ class NaClFs {
 
  private:
   static void PostMessageFromMainThread(void* param, int32_t result);
-  void Lock();
-  void Unlock();
+  void Wait();
+  void Signal();
 
   static NaClFs* single_instance_;
   static bool trace_;
@@ -75,6 +76,7 @@ class NaClFs {
   pp::Core* core_;
   pp::Instance* instance_;
   pthread_mutex_t mutex_;
+  pthread_cond_t cond_;
 };
 
 }  // namespace naclfs

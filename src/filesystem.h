@@ -36,7 +36,6 @@
 #include <dirent.h>
 #include <errno.h>
 #include <pthread.h>
-#include <semaphore.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <sys/stat.h>
@@ -75,7 +74,7 @@ class FileSystem {
       REWINDDIR,
       READDIR,
       CLOSEDIR
-    };
+    };  // enum Function
     typedef struct _Arguments {
       enum Function function;
       Delegate* delegate;
@@ -195,17 +194,18 @@ class FileSystem {
     pp::CompletionCallback callback_;
 
    private:
-    void Lock();
-    void Unlock();
+    void Wait();
+    void Signal();
 
     void Call(Arguments& arguments);
     static void Proxy(void* param, int32_t result);
     static void Switch(Arguments* arguments);
 
     static bool initialized_;
-    static sem_t sem_;
+    static pthread_mutex_t mutex_;
+    static pthread_cond_t cond_;
     static pp::Core* core_;
-  };
+  };  // class FileSystem::Delegate
 
   class Dir {
    public:
@@ -216,7 +216,7 @@ class FileSystem {
 
    protected:
     Delegate* delegate_;
-  };
+  };  // class FileSystem::Dir
 
   FileSystem(NaClFs* naclfs);
   ~FileSystem();
@@ -250,7 +250,7 @@ class FileSystem {
   pthread_mutex_t mutex_;
   pp::Core* core_;
   NaClFs* naclfs_;
-};
+};  // class FileSystem
 
 }  // namespace naclfs
 
