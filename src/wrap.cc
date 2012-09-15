@@ -78,6 +78,8 @@ int __wrap_stat(const char* path, struct stat* buf) {
     nacl_buf->nacl_abi_st_mode = buf->st_mode;
     nacl_buf->nacl_abi_st_nlink = buf->st_nlink;
     nacl_buf->nacl_abi_st_size = buf->st_size;
+    nacl_buf->nacl_abi_st_blksize = buf->st_blksize;
+    nacl_buf->nacl_abi_st_blocks = buf->st_blocks;
     nacl_buf->nacl_abi_st_atime = buf->st_atim.tv_sec;
     nacl_buf->nacl_abi_st_atimensec = buf->st_atim.tv_nsec;
     nacl_buf->nacl_abi_st_mtime = buf->st_mtim.tv_sec;
@@ -132,6 +134,8 @@ int __wrap_fstat(int fd, struct stat* buf) {
     nacl_buf->nacl_abi_st_mode = buf->st_mode;
     nacl_buf->nacl_abi_st_nlink = buf->st_nlink;
     nacl_buf->nacl_abi_st_size = buf->st_size;
+    nacl_buf->nacl_abi_st_blksize = buf->st_blksize;
+    nacl_buf->nacl_abi_st_blocks = buf->st_blocks;
     nacl_buf->nacl_abi_st_atime = buf->st_atim.tv_sec;
     nacl_buf->nacl_abi_st_atimensec = buf->st_atim.tv_nsec;
     nacl_buf->nacl_abi_st_mtime = buf->st_mtim.tv_sec;
