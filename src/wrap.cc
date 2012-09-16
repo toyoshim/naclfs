@@ -251,6 +251,55 @@ extern "C" struct dirent* readdir(DIR* dirp) {
   return naclfs::NaClFs::GetFileSystem()->ReadDir(dirp);
 }
 
+extern "C" int readdir_r(DIR* dirp,
+                         struct dirent* entry,
+                         struct dirent** result) {
+  if (naclfs::NaClFs::trace()) {
+    std::stringstream ss;
+    ss << "enter readdir_r:" << std::endl;
+    ss << " dirp=" << dirp << std::endl;
+    ss << " entry=" << entry << std::endl;
+    ss << " result=" << result << std::endl;
+    naclfs::NaClFs::Log(ss.str().c_str());
+  }
+  if (!dirp || !entry || !result) {
+    if (result)
+      *result = NULL;
+    return EINVAL;  // TODO: Set proper errno.
+  }
+  struct dirent* dir = naclfs::NaClFs::GetFileSystem()->ReadDir(dirp);
+  if (!dir) {
+    if (result)
+      *result = NULL;
+    return EFAULT;  // TODO: Set proper errno.
+  }
+  memcpy(entry, dir, sizeof(struct dirent));
+  *result = entry;
+  return 0;
+}
+
+extern "C" long telldir(DIR* dirp) {
+  naclfs::NaClFs::Log("XXX not impl: telldir\n");
+  if (naclfs::NaClFs::trace()) {
+    std::stringstream ss;
+    ss << "enter telldir:" << std::endl;
+    ss << " dirp=" << dirp << std::endl;
+    naclfs::NaClFs::Log(ss.str().c_str());
+  }
+  return -1;
+}
+
+extern "C" void seekdir(DIR* dirp, long offset) {
+  naclfs::NaClFs::Log("XXX not impl: seekdir\n");
+  if (naclfs::NaClFs::trace()) {
+    std::stringstream ss;
+    ss << "enter seekdir:" << std::endl;
+    ss << " dirp=" << dirp << std::endl;
+    ss << " offset=" << offset << std::endl;
+    naclfs::NaClFs::Log(ss.str().c_str());
+  }
+}
+
 extern "C" int closedir(DIR* dirp) {
   if (naclfs::NaClFs::trace()) {
     std::stringstream ss;
