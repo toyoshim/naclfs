@@ -74,6 +74,7 @@ class PortFileSystem : public FileSystem::Delegate {
   bool readable_;
   bool writable_;
   bool blocking_;
+  int oflag_;
   int id_;
 };
 

@@ -270,6 +270,11 @@ extern "C" int fcntl(int fildes, int cmd, ...) {
   }
   int result = naclfs::NaClFs::GetFileSystem()->Fcntl(fildes, cmd, &ap);
   va_end(ap);
+  if (naclfs::NaClFs::trace()) {
+    std::stringstream ss;
+    ss << "leave fcntl: " << result << std::endl;
+    naclfs::NaClFs::Log(ss.str().c_str());
+  }
   return result;
 }
 

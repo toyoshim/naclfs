@@ -217,11 +217,11 @@ $(HTML)/naclfs_tests_x86_32.nexe: $(OBJ_OUT)/naclfs_tests.o
 	@echo "linking $@ ..."
 	@$(CXX) $(LDFLAGS) -o $@ $< $(LIBS)
 
-$(HTML)/tests_x86_32.nexe: $(OBJ_OUT)/tests.o
+$(HTML)/tests_x86_32.nexe: $(OBJ_OUT)/tests.o $(CRT_OBJ) $(OBJS)
 	@echo "linking $@ ..."
 	@$(CXX) $(LDFLAGS) -o $@ $< $(CRT_LIB) $(LIBS)
 
-$(HTML)/hello_x86_32.nexe: $(OBJ_OUT)/hello.o
+$(HTML)/hello_x86_32.nexe: $(OBJ_OUT)/hello.o $(CRT_OBJ) $(OBJS)
 	@echo "linking $@ ..."
 	@$(CXX) $(LDFLAGS) -o $@ $< $(CRT_LIB) $(LIBS)
 
@@ -229,10 +229,10 @@ $(HTML)/naclfs_tests_x86_64.nexe: $(OBJ_OUT)/naclfs_tests.o
 	@echo "linking $@ ..."
 	@$(CXX) $(LDFLAGS) -o $@ $< $(LIBS)
 
-$(HTML)/tests_x86_64.nexe: $(OBJ_OUT)/tests.o
+$(HTML)/tests_x86_64.nexe: $(OBJ_OUT)/tests.o $(CRT_OBJ) $(OBJS)
 	@echo "linking $@ ..."
 	@$(CXX) $(LDFLAGS) -o $@ $< $(CRT_LIB) $(LIBS)
 
-$(HTML)/hello_x86_64.nexe: $(OBJ_OUT)/hello.o
+$(HTML)/hello_x86_64.nexe: $(OBJ_OUT)/hello.o $(CRT_OBJ) $(OBJS)
 	@echo "linking $@ ..."
 	@$(CXX) $(LDFLAGS) -o $@ $< $(CRT_LIB) $(LIBS)

@@ -455,6 +455,7 @@ int Html5FileSystem::FcntlCall(Arguments* arguments, int cmd, va_list* ap) {
         ss << "Html5FileSystem::Fcntl not supported cmd=F_SETFD arg="
            << arg << "\n";
         naclfs_->Log(ss.str().c_str());
+        errno = ENOSYS;
         return -1;
       }
       return 0;
@@ -463,10 +464,11 @@ int Html5FileSystem::FcntlCall(Arguments* arguments, int cmd, va_list* ap) {
       std::ostringstream ss;
       ss << "Html5FileSystem::Fcntl not supported cmd=" << cmd << "\n";
       naclfs_->Log(ss.str().c_str());
+      errno = ENOSYS;
       return -1;
     }
   }
-  return -1;
+  return 0;
 }
 
 int Html5FileSystem::MkDirCall(Arguments* arguments,

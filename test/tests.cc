@@ -217,6 +217,19 @@ bool test_SystemCall_IsATty() {
   return true;
 }
 
+bool test_SystemCall_FcntlGetFlStandards() {
+  if (fcntl(STDIN_FILENO, F_GETFL) != O_RDONLY)
+    ERROR("fcntl STDIN F_GETFL returns invalid value");
+
+  if (fcntl(STDOUT_FILENO, F_GETFL) != O_WRONLY)
+    ERROR("fcntl STDOUT F_GETFL returns invalid value");
+
+  if (fcntl(STDERR_FILENO, F_GETFL) != O_WRONLY)
+    ERROR("fcntl STDERR F_GETFL returns invalid value");
+
+  return true;
+}
+
 bool test_SystemCall_ReadLseekAndWriteFile() {
   const char* fname = "/test_create";
   int fd = open(fname, O_RDWR | O_CREAT | O_TRUNC);
@@ -493,6 +506,7 @@ extern "C" int naclfs_main(int argc, char** argv) {
   REGISTER_TEST(SystemCall, WriteStandards);
   REGISTER_TEST(SystemCall, StatStandards);
   REGISTER_TEST(SystemCall, IsATty);
+  REGISTER_TEST(SystemCall, FcntlGetFlStandards);
   REGISTER_TEST(SystemCall, ReadLseekAndWriteFile);
   REGISTER_TEST(SystemCall, CreateAndStatFile);
   REGISTER_TEST(SystemCall, CreateAndStatDirectory);

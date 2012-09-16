@@ -54,6 +54,7 @@ PortFileSystem::PortFileSystem(NaClFs* naclfs)
       readable_(false),
       writable_(false),
       blocking_(true),
+      oflag_(0),
       id_(-1) {
 }
 
@@ -61,6 +62,7 @@ PortFileSystem::~PortFileSystem() {
 }
 
 int PortFileSystem::Open(const char* path, int oflag, mode_t cmode) {
+  oflag_ = oflag;
   if (!strcmp(path, kStdInPath)) {
     id_ = STDIN_FILENO;
     readable_ = true;
@@ -159,10 +161,15 @@ int PortFileSystem::Fcntl(int cmd, va_list* ap) {
       ss << flag << std::endl;
       naclfs_->Log(ss.str().c_str());
     }
+  } else if (cmd == F_GETFL) {
+    return oflag_;
   } else {
     naclfs_->Log("PortFileSystem::Fcntl not supported.\n");
+    errno = ENOSYS;
+    return -1;
   }
-  return -1;
+  errno = 0;
+  return 0;
 }
 
 bool PortFileSystem::HandleMessage(const pp::Var& message) {
