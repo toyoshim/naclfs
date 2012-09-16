@@ -1,0 +1,36 @@
+#!/bin/sh
+
+function _wrap() {
+  /bin/echo -n "-Xlinker --wrap -Xlinker $1 "
+}
+
+function cflags() {
+  /bin/echo -n "-I$1/../include -Dmain=naclfs_main"
+}
+
+function crt() {
+  /bin/echo -n "$1/../lib/naclfs_crt.o"
+}
+
+function libs() {
+  /bin/echo -n "-lnaclfs -lppapi_cpp -lstdc++"
+}
+
+function version() {
+  /bin/echo "0.1.0"
+}
+
+function help() {
+  /bin/echo -n "Usage: naclfs-config [--cflags] [--libs] [--crt] [--version]"
+}
+
+DIRNAME="`dirname $0`"
+
+case $1 in
+  --cflags) cflags $DIRNAME;;
+  --crt) crt $DIRNAME;;
+  --libs) libs $DIRNAME;;
+  --version) version;;
+  *) help;;
+esac
+

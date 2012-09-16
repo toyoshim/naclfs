@@ -37,6 +37,8 @@ else
 endif
 OSNAME	:= $(shell python $(NACL_SDK_ROOT)/tools/getos.py)
 TC_PATH	:= $(NACL_SDK_ROOT)/toolchain/$(OSNAME)_x86_$(TC_TYPE)
+USR32_PATH	:= $(TC_PATH)/i686-nacl/usr
+USR64_PATH	:= $(TC_PATH)/x86_64-nacl/usr
 ifeq ($(findstring 32, $(MAKECMDGOALS)), 32)
   ARCH		:= i686
   ARCH_CFLAGS	+= -m32
@@ -65,7 +67,7 @@ LIBS	:= `./bin/naclfs-config --libs $(TC_TYPE)-$(ARCH)` \
 CRT_LIB	:= `./bin/naclfs-config --crt $(TC_TYPE)-$(ARCH)`
 LDFLAGS	:=
 
-.PHONY: all clean default help
+.PHONY: all clean install glibcinstall newlibinstall default help
 default: help
 
 all:
@@ -77,41 +79,78 @@ clean:
 		html/glibc/tests.nmf html/glibc/hello.nmf \
 		html/glibc/lib32 html/glibc/lib64
 
+install:
+	@$(MAKE) glibcinstall
+	@$(MAKE) newlibinstall
+
+.PHONY: _glibc_install_message _newlibc_install_message _common_install
+glibcinstall: glibc _glibc_install_message _common_install
+newlibinstall: newlib _newlib_install_message _common_install
+
+_glibc_install_message:
+	@echo "*** installing glibc libraries and tools ***"
+
+_newlib_install_message:
+	@echo "*** installing newlib libraries and tools ***"
+
+_common_install:
+	@echo "*** installing 32-bit library and tool ***"
+	@install -d $(USR32_PATH)/bin
+	@install -d $(USR32_PATH)/lib/naclfs
+	@install obj/$(TC_TYPE)-i686/libnaclfs.a $(USR32_PATH)/lib
+	@if [ -f obj/$(TC_TYPE)-i686/libnaclfs.so ]; then \
+		install obj/$(TC_TYPE)-i686/libnaclfs.so $(USR32_PATH)/lib; \
+	fi
+	@install bin/install-naclfs-config $(USR32_PATH)/bin/naclfs-config
+	@install html/naclfs.js $(USR32_PATH)/lib/naclfs
+	@echo "*** installing 64-bit library and tool ***"
+	@install -d $(USR64_PATH)/bin
+	@install -d $(USR64_PATH)/lib/naclfs
+	@install obj/$(TC_TYPE)-x86_64/libnaclfs.a $(USR64_PATH)/lib
+	@if [ -f obj/$(TC_TYPE)-x86_64/libnaclfs.so ]; then \
+		install obj/$(TC_TYPE)-x86_64/libnaclfs.so $(USR64_PATH)/lib; \
+	fi
+	@install bin/install-naclfs-config $(USR64_PATH)/bin/naclfs-config
+	@install html/naclfs.js $(USR64_PATH)/lib/naclfs
+
 help:
 	@echo "make target"
 	@echo "target:"
-	@echo "  all          ... builds all libraries and tests"
-	@echo "  clean        ... cleans output files"
-	@echo "  glibc        ... builds libraries for glibc toolchain"
-	@echo "  glibc32      ... builds 32-bit library for glibc toolchain"
-	@echo "  glibc64      ... builds 64-bit library for glibc toolchain"
-	@echo "  glibctest    ... builds tests for glibc toolchain"
-	@echo "  glibc32test  ... builds 32-bit test for glibc toolchain"
-	@echo "  glibc64test  ... builds 64-bit test for glibc toolchain"
-	@echo "  newlib       ... builds libraries for newlib toolchain"
-	@echo "  newlib32     ... builds 32-bit library for newlib toolchain"
-	@echo "  newlib64     ... builds 64-bit library for newlib toolchain"
-	@echo "  newlibtest   ... builds tests for newlib toolchain"
-	@echo "  newlib32test ... builds 32-bit test for newlib toolchain"
-	@echo "  newlib64test ... builds 64-bit test for newlib toolchain"
+	@echo "  all           ... builds all libraries and tests"
+	@echo "  clean         ... cleans output files"
+	@echo "  install       ... install libraries and tools"
+	@echo "  glibcinstall  ... install glibc library and tool"
+	@echo "  newlibinstall ... install newlib library and tool"
+	@echo "  glibc         ... builds libraries for glibc toolchain"
+	@echo "  glibc32       ... builds 32-bit library for glibc toolchain"
+	@echo "  glibc64       ... builds 64-bit library for glibc toolchain"
+	@echo "  glibctest     ... builds tests for glibc toolchain"
+	@echo "  glibc32test   ... builds 32-bit test for glibc toolchain"
+	@echo "  glibc64test   ... builds 64-bit test for glibc toolchain"
+	@echo "  newlib        ... builds libraries for newlib toolchain"
+	@echo "  newlib32      ... builds 32-bit library for newlib toolchain"
+	@echo "  newlib64      ... builds 64-bit library for newlib toolchain"
+	@echo "  newlibtest    ... builds tests for newlib toolchain"
+	@echo "  newlib32test  ... builds 32-bit test for newlib toolchain"
+	@echo "  newlib64test  ... builds 64-bit test for newlib toolchain"
 	@echo
 
-.PHONY: glibc glibc32 glibc64 newlib newlib32 newlib64 lib-message
+.PHONY: glibc glibc32 glibc64 newlib newlib32 newlib64 _lib_message
 glibc:
 	@$(MAKE) glibc32
 	@$(MAKE) glibc64
-glibc32: lib-message $(OBJ_OUT)/libnaclfs.so $(OBJ_OUT)/libnaclfs.a $(CRT_OBJ)
-glibc64: lib-message $(OBJ_OUT)/libnaclfs.so $(OBJ_OUT)/libnaclfs.a $(CRT_OBJ)
+glibc32: _lib_message $(OBJ_OUT)/libnaclfs.so $(OBJ_OUT)/libnaclfs.a $(CRT_OBJ)
+glibc64: _lib_message $(OBJ_OUT)/libnaclfs.so $(OBJ_OUT)/libnaclfs.a $(CRT_OBJ)
 newlib:
 	@$(MAKE) newlib32
 	@$(MAKE) newlib64
-newlib32: lib-message $(OBJ_OUT)/libnaclfs.a $(CRT_OBJ)
-newlib64: lib-message $(OBJ_OUT)/libnaclfs.a $(CRT_OBJ)
-lib-message:
+newlib32: _lib_message $(OBJ_OUT)/libnaclfs.a $(CRT_OBJ)
+newlib64: _lib_message $(OBJ_OUT)/libnaclfs.a $(CRT_OBJ)
+_lib_message:
 	@echo "*** building library to $(OBJ_OUT) ***"
 
 .PHONY: glibctest glibc32test glibc64test \
-	newlibtest newlib32test newlib64test test-message
+	newlibtest newlib32test newlib64test _test_message
 glibctest:
 	@$(MAKE) glibc32test
 	@$(MAKE) glibc64test
@@ -135,22 +174,22 @@ glibctest:
 		html/glibc/hello_x86_64.nexe \
 		-t glibc -s html/glibc
 	@rm -r html/glibc/html
-glibc32test: glibc32 test-message \
+glibc32test: glibc32 _test_message \
 	$(HTML)/naclfs_tests_x86_32.nexe \
 	$(HTML)/tests_x86_32.nexe $(HTML)/hello_x86_32.nexe
-glibc64test: glibc64 test-message \
+glibc64test: glibc64 _test_message \
 	$(HTML)/naclfs_tests_x86_64.nexe \
 	$(HTML)/tests_x86_64.nexe $(HTML)/hello_x86_64.nexe
 newlibtest:
 	@$(MAKE) newlib32test
 	@$(MAKE) newlib64test
-newlib32test: newlib32 test-message \
+newlib32test: newlib32 _test_message \
 	$(HTML)/naclfs_tests_x86_32.nexe \
 	$(HTML)/tests_x86_32.nexe $(HTML)/hello_x86_32.nexe
-newlib64test: newlib64 test-message \
+newlib64test: newlib64 _test_message \
 	$(HTML)/naclfs_tests_x86_64.nexe \
 	$(HTML)/tests_x86_64.nexe $(HTML)/hello_x86_64.nexe
-test-message:
+_test_message:
 	@echo "*** building test to $(OBJ_OUT) ***"
 
 $(OBJ_OUT)/libnaclfs.so: $(OBJS)
