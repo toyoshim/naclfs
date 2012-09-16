@@ -258,7 +258,7 @@ extern "C" int __wrap_isatty(int fildes) {
   return 1;
 }
 
-extern "C" int fcntl(int fildes, int cmd, ...) {
+extern "C" int __wrap_fcntl(int fildes, int cmd, ...) {
   va_list ap;
   va_start(ap, cmd);
   if (naclfs::NaClFs::trace()) {

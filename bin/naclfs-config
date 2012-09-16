@@ -15,6 +15,7 @@ function crt() {
 function libs() {
   _wrap "access"
   _wrap "isatty"
+  _wrap "fcntl"
   /bin/echo -n "-L$1/../obj/$2 -lnaclfs -lppapi_cpp -lstdc++"
 }
 
