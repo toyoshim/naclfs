@@ -68,6 +68,7 @@ class FileSystem {
       READ,
       WRITE,
       SEEK,
+      ISATTY,
       FCNTL,
       MKDIR,
       OPENDIR,
@@ -134,6 +135,7 @@ class FileSystem {
         ssize_t read;
         ssize_t write;
         off_t seek;
+        int isatty;
         int fcntl;
         int mkdir;
         DIR* opendir;
@@ -151,6 +153,7 @@ class FileSystem {
     virtual ssize_t Read(void* buf, size_t nbytes);
     virtual ssize_t Write(const void* buf, size_t nbytes);
     virtual off_t Seek(off_t offset, int whence);
+    virtual int IsATty();
     virtual int Fcntl(int cmd, va_list* ap);
     virtual int MkDir(const char* path, mode_t mode);
     virtual DIR* OpenDir(const char* dirname);
@@ -161,13 +164,13 @@ class FileSystem {
     virtual int OpenCall(Arguments* arguments,
                          const char* path,
                          int oflag,
-                         mode_t cmode) { return ENODEV; }
+                         mode_t cmode) { return ENOSYS; }
     virtual int StatCall(Arguments* arguments,
                          const char* path,
-                         struct stat* buf) { return -1; }
-    virtual int CloseCall(Arguments* arguments) { return -1; }
+                         struct stat* buf) { return ENOSYS; }
+    virtual int CloseCall(Arguments* arguments) { return ENOSYS; }
     virtual int FstatCall(Arguments* arguments,
-                          struct stat* buf) { return -1; }
+                          struct stat* buf) { return ENOSYS; }
     virtual ssize_t ReadCall(Arguments* arguments,
                              void* buf,
                              size_t nbytes) { return -1; }
@@ -177,6 +180,7 @@ class FileSystem {
     virtual off_t SeekCall(Arguments* arguments,
                            off_t offset,
                            int whence) { return -1; }
+    virtual int IsATtyCall(Arguments* arguments) { return ENOSYS; }
     virtual int FcntlCall(Arguments* arguments,
                           int cmd,
                           va_list* ap) { return -1; }
@@ -228,6 +232,7 @@ class FileSystem {
   ssize_t Read(int fildes, void* buf, size_t nbytes);
   ssize_t Write(int fildes, const void* buf, size_t nbytes);
   off_t Seek(int fildes, off_t offset, int whence);
+  int IsATty(int fildes);
   int Fcntl(int fildes, int cmd, va_list* ap);
   int MkDir(const char* path, mode_t mode);
   DIR* OpenDir(const char* dirname);

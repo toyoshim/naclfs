@@ -32,6 +32,7 @@
 #include "wrap.h"
 
 #include <assert.h>
+#include <errno.h>
 #include <irt.h>
 #if defined(__GLIBC__)
 #  include <irt_syscalls.h>
@@ -54,7 +55,18 @@ int __wrap_open(const char* path, int oflag, mode_t cmode, int* newfd) {
     ss << " oflag=" << oflag << std::endl;
     naclfs::NaClFs::Log(ss.str().c_str());
   }
-  return naclfs::NaClFs::GetFileSystem()->Open(path, oflag, cmode, newfd);
+  if (!path)
+    return EFAULT;
+  if (!path[0])
+    return ENOENT;
+  int result = naclfs::NaClFs::GetFileSystem()->Open(path, oflag, cmode, newfd);
+  if (naclfs::NaClFs::trace()) {
+    std::stringstream ss;
+    ss << "leave open: " << *newfd << std::endl;
+    ss << " errno=" << errno << "; " << strerror(errno) << std::endl;
+    naclfs::NaClFs::Log(ss.str().c_str());
+  }
+  return result;
 }
 
 #if defined(__GLIBC__)
@@ -75,6 +87,8 @@ int __wrap_stat(const char* path, struct stat* buf) {
   }
   if (!path || !buf)
     return EFAULT;
+  if (!path[0])
+    return ENOENT;
   int result = naclfs::NaClFs::GetFileSystem()->Stat(path, buf);
 #if defined(__GLIBC__)
   if (nacl_buf) {
@@ -92,6 +106,12 @@ int __wrap_stat(const char* path, struct stat* buf) {
     nacl_buf->nacl_abi_st_ctimensec = buf->st_mtim.tv_nsec;
   }
 #endif // defined(__GLIBC__)
+  if (naclfs::NaClFs::trace()) {
+    std::stringstream ss;
+    ss << "leave stat: " << result << std::endl;
+    ss << " errno=" << errno << "; " << strerror(errno) << std::endl;
+    naclfs::NaClFs::Log(ss.str().c_str());
+  }
   return result;
 }
 
@@ -193,6 +213,49 @@ int __wrap_seek(int fildes, off_t offset, int whence, off_t* new_offset) {
   *new_offset = naclfs::NaClFs::GetFileSystem()->Seek(fildes, offset, whence);
   // TODO: Handle returning errono.
   return 0;
+}
+
+extern "C" int __wrap_access(const char* path, int amode) {
+  if (naclfs::NaClFs::trace()) {
+    std::stringstream ss;
+    ss << "enter access:" << std::endl;
+    ss << " path=" << path << std::endl;
+    ss << " amode=" << amode << std::endl;
+    naclfs::NaClFs::Log(ss.str().c_str());
+  }
+  struct stat buf;
+  int result = naclfs::NaClFs::GetFileSystem()->Stat(path, &buf);
+  if (result) {
+    errno = result;
+    return -1;
+  }
+  // TODO: Currently, naclfs doesn't have the idea of file owner.
+  // And stat returns the same mode for all of user, group, and other.
+  mode_t mode = (mode_t)amode;
+  if ((buf.st_mode & mode) != mode) {
+    errno = EACCES;
+    return -1;
+  }
+  if (naclfs::NaClFs::trace())
+    naclfs::NaClFs::Log("leave access: 0");
+  return 0;
+}
+
+extern "C" int __wrap_isatty(int fildes) {
+  if (naclfs::NaClFs::trace()) {
+    std::stringstream ss;
+    ss << "enter isatty:" << std::endl;
+    ss << " fildes=" << fildes << std::endl;
+    naclfs::NaClFs::Log(ss.str().c_str());
+  }
+  int result = naclfs::NaClFs::GetFileSystem()->IsATty(fildes);
+  if (result >= 0)
+    errno = result;
+  else
+    errno = 0;
+  if (result)
+    return 0;
+  return 1;
 }
 
 extern "C" int fcntl(int fildes, int cmd, ...) {

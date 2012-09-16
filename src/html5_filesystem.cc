@@ -285,7 +285,10 @@ int Html5FileSystem::StatCall(Arguments* arguments,
     rpc_object_ = NULL;
     memset(buf, 0, sizeof(struct stat));
     if (!arguments->result.callback)
-      buf->st_mode = S_IRUSR | S_IWUSR | S_IXUSR | S_IFDIR;
+      buf->st_mode = S_IFDIR |
+                     S_IRUSR | S_IWUSR | S_IXUSR |
+                     S_IRGRP | S_IWGRP | S_IXGRP |
+                     S_IROTH | S_IWOTH | S_IXOTH;
     return arguments->result.callback;
   }
 
@@ -294,7 +297,9 @@ int Html5FileSystem::StatCall(Arguments* arguments,
     if (arguments->result.callback)
       return PPErrorToErrNo(arguments->result.callback);
     memset(buf, 0, sizeof(struct stat));
-    buf->st_mode = S_IRUSR | S_IWUSR | S_IXUSR;
+    buf->st_mode = S_IRUSR | S_IWUSR | S_IXUSR |
+                   S_IRGRP | S_IWGRP | S_IXGRP |
+                   S_IROTH | S_IWOTH | S_IXOTH;
     buf->st_size = file_info_.size;
     buf->st_atime = file_info_.last_access_time;
     buf->st_mtime = file_info_.last_modified_time;

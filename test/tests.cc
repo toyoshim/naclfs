@@ -37,6 +37,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 #include <vector>
 
@@ -131,6 +132,22 @@ bool test_SystemCall_OpenAndCloseStandards() {
   return true;
 }
 
+
+bool test_SystemCall_OpenAndStatEmptyPath() {
+  if (!open("", O_RDONLY))
+    ERROR("unexpected open success on empty path");
+  if (errno != ENOENT)
+    ERROR("open '' doesn't set ENOENT");
+
+  struct stat buf;
+  if (!stat("", &buf))
+    ERROR("unexpected stat success on empty path");
+  if (errno != ENOENT)
+    ERROR("stat '' doesn't set ENOENT");
+
+  return true;
+}
+
 bool test_SystemCall_WriteStandards() {
   if (5 != write(STDOUT_FILENO, "*****", 5))
     ERROR("can not write to STDOUT_FILENO");
@@ -174,6 +191,28 @@ bool test_SystemCall_StatStandards() {
     ERROR("can not stat on /dev/stderr");
   if (buf.st_mode != expected_mode)
     ERROR("invalid st_mode on /dev/stderr");
+
+  return true;
+}
+
+bool test_SystemCall_IsATty() {
+  if (isatty(STDIN_FILENO) != 1)
+    ERROR("isatty on stdin failed");
+  if (isatty(STDOUT_FILENO) != 1)
+    ERROR("isatty on stdout failed");
+  if (isatty(STDERR_FILENO) != 1)
+    ERROR("isatty on stderr failed");
+  if (isatty(-1))
+    ERROR("isatty on -1 success unexpectedly");
+  if (errno != EBADF)
+    ERROR("isatty doesn't set EBADF");
+
+  int fd = open("/test_create", O_RDWR | O_CREAT | O_TRUNC);
+  if (isatty(fd)) {
+    close(fd);
+    ERROR("isatty on valid fd failed");
+  }
+  close(fd);
 
   return true;
 }
@@ -231,7 +270,10 @@ bool test_SystemCall_CreateAndStatFile() {
   if (stat(fname, &buf))
     ERROR("can not stat on /test_create");
 
-  mode_t expected_mode = S_IFREG | S_IRUSR | S_IWUSR | S_IXUSR;
+  mode_t expected_mode = S_IFREG |
+                         S_IRUSR | S_IWUSR | S_IXUSR |
+                         S_IRGRP | S_IWGRP | S_IXGRP |
+                         S_IROTH | S_IWOTH | S_IXOTH;
   if (buf.st_mode != expected_mode)
     ERROR("invalid st_mode");
   if (5 != buf.st_size)
@@ -261,7 +303,10 @@ bool test_SystemCall_CreateAndStatDirectory() {
   // TODO: Test creation
 
   struct stat buf;
-  mode_t expected_mode = S_IFDIR | S_IRUSR | S_IWUSR | S_IXUSR;
+  mode_t expected_mode = S_IFDIR |
+                         S_IRUSR | S_IWUSR | S_IXUSR |
+                         S_IRGRP | S_IWGRP | S_IXGRP |
+                         S_IROTH | S_IWOTH | S_IXOTH;
   if (stat(fpath1, &buf))
     ERROR("stat on /test_path directory failed");
   if (buf.st_mode != expected_mode)
@@ -270,6 +315,38 @@ bool test_SystemCall_CreateAndStatDirectory() {
     ERROR("stat on /test_path/child_dir directory failed");
   if (buf.st_mode != expected_mode)
     ERROR("invalid st_mode on /test_path/child_dir");
+
+  return true;
+}
+
+bool test_SystemCall_CreateAndAccessFile() {
+  const char* fname = "/test_create";
+  close(open(fname, O_RDWR | O_CREAT | O_TRUNC));
+
+  if (access(fname, R_OK))
+    ERROR("access R_OK failed");
+
+  if (access(fname, W_OK))
+    ERROR("access W_OK failed");
+
+  if (access(fname, X_OK))
+    ERROR("access X_OR failed");
+
+  if (access(fname, F_OK))
+    ERROR("access F_OR failed");
+
+  if (!access("/test_create_ng", F_OK))
+    ERROR("access F_OK success unexpectedly");
+  if (errno != ENOENT)
+    ERROR("access F_OK doesn't set ENOENT");
+
+  if (!access("/test_create_ng", R_OK))
+    ERROR("access R_OK success unexpectedly");
+  if (errno != ENOENT)
+    ERROR("access F_OK doesn't set ENOENT");
+
+  if (eaccess(fname, R_OK | W_OK | X_OK | F_OK))
+    ERROR("eaccess failed");
 
   return true;
 }
@@ -399,11 +476,14 @@ extern "C" int naclfs_main(int argc, char** argv) {
   g_argv = argv;
 
   REGISTER_TEST(SystemCall, OpenAndCloseStandards);
+  REGISTER_TEST(SystemCall, OpenAndStatEmptyPath);
   REGISTER_TEST(SystemCall, WriteStandards);
   REGISTER_TEST(SystemCall, StatStandards);
+  REGISTER_TEST(SystemCall, IsATty);
   REGISTER_TEST(SystemCall, ReadLseekAndWriteFile);
   REGISTER_TEST(SystemCall, CreateAndStatFile);
   REGISTER_TEST(SystemCall, CreateAndStatDirectory);
+  REGISTER_TEST(SystemCall, CreateAndAccessFile);
   REGISTER_TEST(SystemCall, Chdir);
   // TODO: OpenAndUnlink, OpenWithVariousModes, MkdirAndRmdir
   REGISTER_TEST(POSIX, OpenAndCloseStandards);

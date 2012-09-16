@@ -5,7 +5,7 @@ function _wrap() {
 }
 
 function cflags() {
-  /bin/echo -n "-I$1/../src -Dmain=naclfs_main"
+  /bin/echo -n "-I$1/../src -Dmain=naclfs_main -Deaccess=access"
 }
 
 function crt() {
@@ -13,6 +13,8 @@ function crt() {
 }
 
 function libs() {
+  _wrap "access"
+  _wrap "isatty"
   /bin/echo -n "-L$1/../obj/$2 -lnaclfs -lppapi_cpp -lstdc++"
 }
 
@@ -21,8 +23,8 @@ function nmf() {
 }
 
 function help() {
-  /bin/echo -n "Usage: naclfs-config [--cflags] [--libs toolchain] [--nmf] "
-  echo "[--crt toolchain]"
+  /bin/echo -n "Usage: naclfs-config [--cflags toolchain] [--libs toolchain] "
+  echo "[--nmf] [--crt toolchain]"
   echo "  toolchain:"
   echo "    newlib-i686   ... 32-bit static library for newlib"
   echo "    newlib-x86_64 ... 64-bit static library for newlib"
@@ -33,7 +35,7 @@ function help() {
 DIRNAME="`dirname $0`"
 
 case $1 in
-  --cflags) cflags $DIRNAME;;
+  --cflags) cflags $DIRNAME $2;;
   --crt) crt $DIRNAME $2;;
   --libs) libs $DIRNAME $2;;
   --nmf) nmf $DIRNAME;;

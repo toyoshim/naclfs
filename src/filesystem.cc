@@ -145,6 +145,16 @@ off_t FileSystem::Delegate::Seek(off_t offset, int whence) {
   return arguments.result.seek;
 }
 
+int FileSystem::Delegate::IsATty() {
+  if (core_->IsMainThread())
+    return EIO;
+  Arguments arguments;
+  arguments.delegate = this;
+  arguments.function = ISATTY;
+  Call(arguments);
+  return arguments.result.isatty;
+}
+
 int FileSystem::Delegate::Fcntl(int cmd, va_list* ap) {
   if (core_->IsMainThread())
     return EIO;
@@ -281,6 +291,10 @@ void FileSystem::Delegate::Switch(Arguments* arguments) {
                                         arguments->u.seek.offset,
                                         arguments->u.seek.whence);
       break;
+    case ISATTY:
+      arguments->result.isatty =
+          arguments->delegate->IsATtyCall(arguments);
+      break;
     case FCNTL:
       arguments->result.fcntl =
           arguments->delegate->FcntlCall(arguments,
@@ -405,6 +419,13 @@ off_t FileSystem::Seek(int fildes, off_t offset, int whence) {
   if (!delegate)
     return -1;
   return delegate->Seek(offset, whence);
+}
+
+int FileSystem::IsATty(int fildes) {
+  Delegate* delegate = GetDelegate(fildes);
+  if (!delegate)
+    return EBADF;
+  return delegate->IsATty();
 }
 
 int FileSystem::Fcntl(int fildes, int cmd, va_list* ap) {

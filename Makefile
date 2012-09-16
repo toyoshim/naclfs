@@ -54,7 +54,8 @@ AR	:= $(TC_PATH)/bin/$(ARCH)-nacl-ar
 RANLIB	:= $(TC_PATH)/bin/$(ARCH)-nacl-ranlib
 OBJDUMP	:= $(TC_PATH)/bin/$(ARCH)-nacl-objdump
 NMFGEN	:= $(NACL_SDK_ROOT)/tools/create_nmf.py
-CFLAGS	:= $(ARCH_CFLAGS) -O9 -g -Wall -pthread `./bin/naclfs-config --cflags`
+CFLAGS	:= $(ARCH_CFLAGS) -O9 -g -Wall -pthread \
+	   `./bin/naclfs-config --cflags $(TC_TYPE)-$(ARCH)`
 OBJ_OUT	:= obj/$(TC_TYPE)-$(ARCH)
 HTML	:= html/$(TC_TYPE)
 SRCS	:= src/wrap.cc src/naclfs.cc src/filesystem.cc src/port_filesystem.cc \

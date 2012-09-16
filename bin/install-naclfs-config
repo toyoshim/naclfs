@@ -5,7 +5,7 @@ function _wrap() {
 }
 
 function cflags() {
-  /bin/echo -n "-I$1/../include -Dmain=naclfs_main"
+  /bin/echo -n "-I$1/../include -Dmain=naclfs_main -Deaccess=access"
 }
 
 function crt() {
@@ -13,6 +13,8 @@ function crt() {
 }
 
 function libs() {
+  _wrap "access"
+  _wrap "isatty"
   /bin/echo -n "-lnaclfs -lppapi_cpp -lstdc++"
 }
 
