@@ -406,6 +406,19 @@ bool test_SystemCall_Chdir() {
   return true;
 }
 
+bool test_POSIX_Arguments() {
+  if (g_argc != 3)
+    ERROR("invalid argc");
+  if (strcmp(g_argv[0], "tests"))
+    ERROR("invalid argv[0]");
+  if (strcmp(g_argv[1], "foo"))
+    ERROR("invalid argv[1]");
+  if (strcmp(g_argv[2], "bar"))
+    ERROR("invalid argv[2]");
+
+  return true;
+}
+
 bool test_POSIX_OpenAndCloseStandards() {
   FILE* fp;
   fp = fopen("/dev/stdin", "r");
@@ -486,6 +499,7 @@ extern "C" int naclfs_main(int argc, char** argv) {
   REGISTER_TEST(SystemCall, CreateAndAccessFile);
   REGISTER_TEST(SystemCall, Chdir);
   // TODO: OpenAndUnlink, OpenWithVariousModes, MkdirAndRmdir
+  REGISTER_TEST(POSIX, Arguments);
   REGISTER_TEST(POSIX, OpenAndCloseStandards);
   REGISTER_TEST(POSIX, WriteStandards);
   // TODO: fstat, fcntl

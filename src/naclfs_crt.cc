@@ -67,8 +67,11 @@ class NaClFsInstance: public pp::Instance {
   virtual ~NaClFsInstance() {
     pthread_join(thread_, NULL);
     delete naclfs_;
-    if (argv_ != default_args)
+    if (argv_ != default_args) {
+      for (uint32_t i = 0; i < argc_; ++i)
+        free((void*)argv_[i]);
       free(argv_);
+    }
   }
   virtual bool Init(uint32_t argc, const char* argn[], const char* argv[]) {
     argc_ = 1;
@@ -92,9 +95,9 @@ class NaClFsInstance: public pp::Instance {
         snprintf(argname, 64, "argv%d", i);
         const char* argv_str = find_arg(argname, argc, argn, argv);
         if (argv_str)
-          argv_[i] = argv_str;
+          argv_[i] = strdup(argv_str);
         else
-          argv_[i] = "(naclfs argv not found)";
+          argv_[i] = strdup("(naclfs argv not found)");
       }
     }
     pthread_create(&thread_, NULL, ThreadMain, this);
