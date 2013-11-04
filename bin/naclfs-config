@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 function _wrap() {
   /bin/echo -n "-Xlinker --wrap -Xlinker $1 "
@@ -9,21 +9,28 @@ function cflags() {
 }
 
 function crt() {
-  /bin/echo -n "$1/../obj/$2/naclfs_crt.o"
+  if [ $2 = "pnacl" ]; then
+    /bin/echo -n "$1/../obj/$2/newlib-$2/naclfs_crt.o"
+  else
+    /bin/echo -n "$1/../obj/$2-nacl/naclfs_crt.o"
+  fi
 }
 
 function libs() {
   _wrap "access"
   _wrap "isatty"
   _wrap "fcntl"
-  if [ $2 = "pnacl/newlib-pnacl" ]; then
-    /bin/echo -n "-L $NACL_SDK_ROOT/lib/pnacl/Release "
+  /bin/echo -n "-L$NACL_SDK_ROOT/lib/"
+  /bin/echo -n "$2/Release " | sed -e 's/-/_/' | sed -e 's/i686/x86_32/'
+  if [ $2 = "pnacl" ]; then
+    /bin/echo -n "-L$1/../obj/$2/newlib-$2 -lnaclfs -lppapi_cpp -lstdc++"
+  else
+    /bin/echo -n "-L$1/../obj/$2-nacl -lnaclfs -lppapi_cpp -lstdc++"
   fi
-  /bin/echo -n "-L$1/../obj/$2 -lnaclfs -lppapi_cpp -lstdc++"
 }
 
 function nmf() {
-  /bin/echo -n "-L $1/../obj/glibc-i686 -L $1/../obj/glibc-x86_64"
+  /bin/echo -n "-L $1/../obj/glibc-i686-nacl -L $1/../obj/glibc-x86_64-nacl"
 }
 
 function help() {
@@ -38,11 +45,7 @@ function help() {
 }
 
 DIRNAME="`dirname $0`"
-
 TOOLCHAIN=$2
-if [ $2 = "pnacl" ]; then
-  TOOLCHAIN=pnacl/newlib-pnacl
-fi
 
 case $1 in
   --cflags) cflags $DIRNAME $TOOLCHAIN;;
