@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+  <!--
+  Copyright (c) 2012, Takashi TOYOSHIMA <toyoshim@gmail.com>
+  All rights reserved.
+
+  Redistribution and use in source and binary forms, with or without
+  modification, are permitted provided that the following conditions are met:
+
+  - Redistributions of source code must retain the above copyright notice,
+    this list of conditions and the following disclaimer.
+
+  - Redistributions in binary form must reproduce the above copyright notice,
+    this list of conditions and the following disclaimer in the documentation
+    and/or other materials provided with the distribution.
+
+  - Neither the name of the authors nor the names of its contributors may be
+    used to endorse or promote products derived from this software with out
+    specific prior written permission.
+
+  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUE
+  NTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+  GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+  HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+  OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
+  DAMAGE.
+  -->
+<head>
+  <title>naclfs hello</title>
+
+  <script type="text/javascript"
+    src="http://terminal-js.googlecode.com/git/term.js"></script>
+  <script type="text/javascript" src="../naclfs.js"></script>
+</head>
+<body>
+
+<h1>naclfs hello</h1>
+<p>
+  <div id="listener">
+    <pre id="stdout"
+      style="background-color: black;
+             color: white;
+             display: inline-block;"></pre>
+
+    <pre id="stderr"
+      style="background-color: black;
+             color: white;
+             display: inline-block;"></pre>
+
+    <script type="text/javascript">
+      var terminalOut = new Term('stdout', 80, 25);
+      terminalOut.appendString('STDOUT:\n');
+      var terminalErr = new Term('stderr', 80, 25);
+      terminalErr.appendString('STDERR:\n');
+
+      moduleDidLoad = function () {
+        document.getElementById('statusField').innerHTML = 'SUCCESS';
+
+        naclfsModule = new naclfs(document.getElementById('hello'));
+        naclfsModule.appendStdOut = terminalOut.appendString.bind(terminalOut);
+        naclfsModule.appendStdErr = terminalErr.appendString.bind(terminalErr);
+        naclfsModule.appendConsole = console.log.bind(console);
+
+        document.onkeypress = naclfsModule.onkeypress.bind(naclfsModule);
+        document.onkeydown = naclfsModule.onkeydown.bind(naclfsModule);
+        document.onkeyup = naclfsModule.onkeyup.bind(naclfsModule);
+        document.getElementById('listener').addEventListener(
+            'message', naclfsModule.handleMessage.bind(naclfsModule), true);
+
+
+      };
+      document.getElementById('listener').addEventListener(
+          'load', moduleDidLoad, true);
+
+    </script>
+
+    <embed name="nacl_module"
+           id="hello"
+           width=0 height=0
+           src="hello.nmf"
+           type="application/x-nacl"
+           argc=2
+           argv0="./hello"
+           argv1="hello world" />
+  </div>
+
+</p>
+
+<h2>Status</h2>
+<div id="statusField">LOADING...</div>
+</body>
+</html>

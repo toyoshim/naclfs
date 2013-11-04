@@ -146,6 +146,7 @@ class FileSystem {
 
    public:
     Delegate();
+    virtual ~Delegate() {}
     virtual int Open(const char* path, int oflag, mode_t cmode);
     virtual int Stat(const char* path, struct stat* buf);
     virtual int Close();

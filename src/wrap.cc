@@ -424,11 +424,16 @@ __attribute__((constructor)) static void wrap() {
 
 #else  // defined(__GLIBC__)
 // Use IRT structure overwriting for newlib.
+#if !defined(__pnacl__)
 extern "C" struct nacl_irt_filename __libnacl_irt_filename;
+#endif  // !defined(__pnacl__)
 extern "C" struct nacl_irt_fdio __libnacl_irt_fdio;
 __attribute__((constructor)) static void wrap() {
+#if !defined(__pnacl__)
+  // TODO(toyoshim): Use linker wrap in PNaCl.
   __libnacl_irt_filename.open = __wrap_open;
   __libnacl_irt_filename.stat = __wrap_stat;
+#endif  // !defined(__pnacl__)
 
   __libnacl_irt_fdio.close = __wrap_close;
   //__libnacl_irt_fdio.dup = __wrap_dup;

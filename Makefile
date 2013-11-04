@@ -28,33 +28,44 @@
 # OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
 # DAMAGE.
 #
-ifeq ($(findstring newlib, $(MAKECMDGOALS)), newlib)
-  TC_TYPE	:= newlib
+ifeq ($(findstring pnacl, $(MAKECMDGOALS)), pnacl)
+  TC_TYPE	:= pnacl/newlib
+  TC_CXX	:= clang++
   ARCH_CFLAGS	:=
 else
-  TC_TYPE	:= glibc
-  ARCH_CFLAGS	:= -fPIC
+  TC_CXX	:= g++
+  ifeq ($(findstring newlib, $(MAKECMDGOALS)), newlib)
+    TC_TYPE	:= newlib
+    ARCH_CFLAGS	:=
+  else
+    TC_TYPE	:= glibc
+    ARCH_CFLAGS	:= -fPIC
+  endif
 endif
 OSNAME	:= $(shell python $(NACL_SDK_ROOT)/tools/getos.py)
 TC_PATH	:= $(NACL_SDK_ROOT)/toolchain/$(OSNAME)_x86_$(TC_TYPE)
 USR32_PATH	:= $(TC_PATH)/i686-nacl/usr
 USR64_PATH	:= $(TC_PATH)/x86_64-nacl/usr
-ifeq ($(findstring 32, $(MAKECMDGOALS)), 32)
-  ARCH		:= i686
-  ARCH_CFLAGS	+= -m32
+ifeq ($(findstring pnacl, $(MAKECMDGOALS)), pnacl)
+  ARCH	:= pnacl
 else
-  ARCH		:= x86_64
-  ARCH_CFLAGS	+= -m64
+  ifeq ($(findstring 32, $(MAKECMDGOALS)), 32)
+    ARCH		:= i686-nacl
+    ARCH_CFLAGS	+= -m32
+  else
+    ARCH		:= x86_64-nacl
+    ARCH_CFLAGS	+= -m64
+  endif
 endif
 CYGWIN ?= nodosfilewarning
 export CYGWIN
 
-CXX	:= $(TC_PATH)/bin/$(ARCH)-nacl-g++
-AR	:= $(TC_PATH)/bin/$(ARCH)-nacl-ar
-RANLIB	:= $(TC_PATH)/bin/$(ARCH)-nacl-ranlib
-OBJDUMP	:= $(TC_PATH)/bin/$(ARCH)-nacl-objdump
+CXX	:= $(TC_PATH)/bin/$(ARCH)-$(TC_CXX)
+AR	:= $(TC_PATH)/bin/$(ARCH)-ar
+RANLIB	:= $(TC_PATH)/bin/$(ARCH)-ranlib
+OBJDUMP	:= $(TC_PATH)/bin/$(ARCH)-objdump
 NMFGEN	:= $(NACL_SDK_ROOT)/tools/create_nmf.py
-CFLAGS	:= $(ARCH_CFLAGS) -O9 -g -Wall -pthread \
+CFLAGS	:= $(ARCH_CFLAGS) -O9 -g -Wall -pthread -I$(NACL_SDK_ROOT)/include\
 	   `./bin/naclfs-config --cflags $(TC_TYPE)-$(ARCH)`
 OBJ_OUT	:= obj/$(TC_TYPE)-$(ARCH)
 HTML	:= html/$(TC_TYPE)
@@ -134,9 +145,11 @@ help:
 	@echo "  newlibtest    ... builds tests for newlib toolchain"
 	@echo "  newlib32test  ... builds 32-bit test for newlib toolchain"
 	@echo "  newlib64test  ... builds 64-bit test for newlib toolchain"
+	@echo "  pnacl         ... builds libraries for pnacl toolchain"
+	@echo "  pnacltest     ... builds test for pnacl toolchain"
 	@echo
 
-.PHONY: glibc glibc32 glibc64 newlib newlib32 newlib64 _lib_message
+.PHONY: glibc glibc32 glibc64 newlib newlib32 newlib64 pnal _lib_message
 glibc:
 	@$(MAKE) glibc32
 	@$(MAKE) glibc64
@@ -147,11 +160,12 @@ newlib:
 	@$(MAKE) newlib64
 newlib32: _lib_message $(OBJ_OUT)/libnaclfs.a $(CRT_OBJ)
 newlib64: _lib_message $(OBJ_OUT)/libnaclfs.a $(CRT_OBJ)
+pnacl: _lib_message $(OBJ_OUT)/libnaclfs.a $(CRT_OBJ)
 _lib_message:
 	@echo "*** building library to $(OBJ_OUT) ***"
 
 .PHONY: glibctest glibc32test glibc64test \
-	newlibtest newlib32test newlib64test _test_message
+	newlibtest newlib32test newlib64test pnacltest _test_message
 glibctest:
 	@$(MAKE) glibc32test
 	@$(MAKE) glibc64test
@@ -190,6 +204,9 @@ newlib32test: newlib32 _test_message \
 newlib64test: newlib64 _test_message \
 	$(HTML)/naclfs_tests_x86_64.nexe \
 	$(HTML)/tests_x86_64.nexe $(HTML)/hello_x86_64.nexe
+pnacltest: pnacl _test_message \
+	$(HTML)/naclfs_tests.pexe \
+	$(HTML)/tests.pexe $(HTML)/hello.pexe
 _test_message:
 	@echo "*** building test to $(OBJ_OUT) ***"
 
@@ -236,3 +253,16 @@ $(HTML)/tests_x86_64.nexe: $(OBJ_OUT)/tests.o $(CRT_OBJ) $(OBJS)
 $(HTML)/hello_x86_64.nexe: $(OBJ_OUT)/hello.o $(CRT_OBJ) $(OBJS)
 	@echo "linking $@ ..."
 	@$(CXX) $(LDFLAGS) -o $@ $< $(CRT_LIB) $(LIBS)
+
+$(HTML)/naclfs_tests.pexe: $(OBJ_OUT)/naclfs_tests.o
+	@echo "linking $@ ..."
+	@$(CXX) $(LDFLAGS) -o $@ $< $(LIBS)
+
+$(HTML)/tests.pexe: $(OBJ_OUT)/tests.o $(CRT_OBJ) $(OBJS)
+	@echo "linking $@ ..."
+	@$(CXX) $(LDFLAGS) -o $@ $< $(CRT_LIB) $(LIBS)
+
+$(HTML)/hello.pexe: $(OBJ_OUT)/hello.o $(CRT_OBJ) $(OBJS)
+	@echo "linking $@ ..."
+	@$(CXX) $(LDFLAGS) -o $@ $< $(CRT_LIB) $(LIBS)
+

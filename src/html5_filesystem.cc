@@ -41,12 +41,12 @@
 #include "ppapi/c/pp_errors.h"
 #include "ppapi/c/ppb_file_io.h"
 #include "ppapi/cpp/completion_callback.h"
-#include "ppapi/cpp/dev/directory_entry_dev.h"
-#include "ppapi/cpp/dev/directory_reader_dev.h"
+#include "ppapi/cpp/directory_entry.h"
 #include "ppapi/cpp/file_io.h"
 #include "ppapi/cpp/file_ref.h"
 #include "ppapi/cpp/file_system.h"
 #include "ppapi/cpp/var.h"
+#include "ppapi/utility/completion_callback_factory.h"
 
 namespace {
 
@@ -81,16 +81,20 @@ int PPErrorToErrNo(int pp_error) {
   }
 }
 
-class Html5FileSystemDir : public naclfs::FileSystem::Dir {
+class Html5FileSystemDir
+  : public naclfs::FileSystem::Dir,
+    private pp::CompletionCallbackFactory<Html5FileSystemDir> {
  public:
   Html5FileSystemDir(naclfs::Html5FileSystem* owner,
                      const pp::FileRef& directory_ref)
     : Dir(owner),
-      reader_(new pp::DirectoryReader_Dev(directory_ref)),
+      pp::CompletionCallbackFactory<Html5FileSystemDir>(this),
+      directory_ref_(directory_ref),
       entries_(NULL),
-      offset_(0) {}
+      offset_(0),
+      read_(false) {}
+
   virtual ~Html5FileSystemDir() {
-    delete reader_;
     if (entries_)
       delete entries_;
   }
@@ -98,15 +102,23 @@ class Html5FileSystemDir : public naclfs::FileSystem::Dir {
   void SetEntries(std::vector<std::string>* entries) {
     entries_ = entries;
     offset_ = 0;
+    read_ = false;
   }
 
   int32_t ReadDir(const pp::CompletionCallback& cc) {
-    if (entries_)
+    if (read_)
       return PP_OK;
-    return reader_->GetNextEntry(&entry_, cc);
+    int32_t result = directory_ref_.ReadDirectoryEntries(
+        NewCallbackWithOutput(&Html5FileSystemDir::OnReadDirectoryEntries));
+    if (result == PP_OK)
+      ReadDirComplete();
+    else if (result == PP_OK_COMPLETIONPENDING)
+      callback_ = cc;
+    return result;
   }
 
   struct dirent* ReadDirComplete() {
+    // TODO(toyoshim): Fix.
     memset(&dirent_, 0, sizeof(struct dirent));
     std::string name;
     if (entries_) {
@@ -127,11 +139,22 @@ class Html5FileSystemDir : public naclfs::FileSystem::Dir {
   }
 
  private:
-  pp::DirectoryReader_Dev* reader_;
-  pp::DirectoryEntry_Dev entry_;
+  void OnReadDirectoryEntries(
+      int32_t result, const std::vector<pp::DirectoryEntry>& entries) {
+    if (result == PP_OK) {
+      read_ = true;
+      // TODO(toyoshim): Convert entries to entties_.
+    }
+    callback_.RunAndClear(result);
+  }
+
+  pp::FileRef directory_ref_;
+  pp::DirectoryEntry entry_;
+  pp::CompletionCallback callback_;
   struct dirent dirent_;
   std::vector<std::string>* entries_;
   size_t offset_;
+  bool read_;
 };
 
 };  // namespace
@@ -502,6 +525,7 @@ DIR* Html5FileSystem::OpenDirCall(Arguments* arguments, const char* dirname) {
     rpc_object_ = NULL;
     remoting_ = false;
     if (arguments->result.callback) {
+      // Checked in JavaScript, and found that |dirname| was not a directory.
       delete dirent_;
       dirent_ = NULL;
       return NULL;
@@ -544,8 +568,6 @@ struct dirent* Html5FileSystem::ReadDirCall(Arguments* arguments, DIR* dirp) {
   if (waiting_) {
     waiting_ = false;
     if (arguments->result.callback) {
-      // TODO: Oops, DirectoryReader doesn't work in NaCl yet.
-      // See, http://crbug.com/106129
       std::stringstream ss;
       ss << "Html5FileSystem::ReadDir failed with error code " <<
           arguments->result.callback << std::endl;
@@ -562,6 +584,7 @@ struct dirent* Html5FileSystem::ReadDirCall(Arguments* arguments, DIR* dirp) {
   if (result == PP_OK_COMPLETIONPENDING) {
     waiting_ = true;
     arguments->chaining = true;
+    return NULL;
   }
 
   naclfs_->Log(

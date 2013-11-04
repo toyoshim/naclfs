@@ -16,6 +16,9 @@ function libs() {
   _wrap "access"
   _wrap "isatty"
   _wrap "fcntl"
+  if [ $2 = "pnacl/newlib-pnacl" ]; then
+    /bin/echo -n "-L $NACL_SDK_ROOT/lib/pnacl/Release "
+  fi
   /bin/echo -n "-L$1/../obj/$2 -lnaclfs -lppapi_cpp -lstdc++"
 }
 
@@ -31,14 +34,20 @@ function help() {
   echo "    newlib-x86_64 ... 64-bit static library for newlib"
   echo "    glibc-i686    ... 32-bit static library for glibc"
   echo "    glibc-x86_64  ... 64-bit static library for glibc"
+  echo "    pnacl         ... static library for pnacl"
 }
 
 DIRNAME="`dirname $0`"
 
+TOOLCHAIN=$2
+if [ $2 = "pnacl" ]; then
+  TOOLCHAIN=pnacl/newlib-pnacl
+fi
+
 case $1 in
-  --cflags) cflags $DIRNAME $2;;
-  --crt) crt $DIRNAME $2;;
-  --libs) libs $DIRNAME $2;;
+  --cflags) cflags $DIRNAME $TOOLCHAIN;;
+  --crt) crt $DIRNAME $TOOLCHAIN;;
+  --libs) libs $DIRNAME $TOOLCHAIN;;
   --nmf) nmf $DIRNAME;;
   *) help;;
 esac
