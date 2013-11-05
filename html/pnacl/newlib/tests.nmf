@@ -1,10 +1,7 @@
 {
   "program": {
-    "portable": {
-      "pnacl-translate": {
-        "url": "tests.pexe",
-        "optlevel": 2
-      }
-    }
+    "x86-32": {"url": "tests_x86_32.nexe"},
+    "x86-64": {"url": "tests_x86_64.nexe"},
+    "arm": {"url": "tests_arm.nexe"}
   }
 }

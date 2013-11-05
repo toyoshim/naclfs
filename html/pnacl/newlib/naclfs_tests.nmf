@@ -1,10 +1,7 @@
 {
   "program": {
-    "portable": {
-      "pnacl-translate": {
-        "url": "naclfs_tests.pexe",
-        "optlevel": 2
-      }
-    }
+    "x86-32": {"url": "naclfs_tests_x86_32.nexe"},
+    "x86-64": {"url": "naclfs_tests_x86_64.nexe"},
+    "arm": {"url": "naclfs_tests_arm.nexe"}
   }
 }

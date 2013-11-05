@@ -72,6 +72,8 @@ CXX	:= $(TC_PATH)/bin/$(ARCH)-$(TC_CXX)
 AR	:= $(TC_PATH)/bin/$(ARCH)-ar
 RANLIB	:= $(TC_PATH)/bin/$(ARCH)-ranlib
 OBJDUMP	:= $(TC_PATH)/bin/$(ARCH)-objdump
+PNACLFN	:= $(TC_PATH)/bin/$(ARCH)-finalize
+PNACLTR	:= $(TC_PATH)/bin/$(ARCH)-translate
 NMFGEN	:= $(NACL_SDK_ROOT)/tools/create_nmf.py
 CFLAGS	:= $(ARCH_CFLAGS) -O9 -g -Wall -pthread -I$(NACL_SDK_ROOT)/include\
 	   `./bin/naclfs-config --cflags $(TC_NAME)`
@@ -96,8 +98,8 @@ all:
 	@$(MAKE) pnacltest
 
 clean:
-	@rm -rf obj html/*/*.nexe html/*/*.pexe html/glibc/naclfs_tests.nmf \
-		html/glibc/tests.nmf html/glibc/hello.nmf \
+	@rm -rf obj html/*/*.nexe html/*/*/*.nexe html/*/*/*.pexe html/*/*/*.bc \
+		html/glibc/naclfs_tests.nmf html/glibc/tests.nmf html/glibc/hello.nmf \
 		html/glibc/lib32 html/glibc/lib64
 
 install:
@@ -216,8 +218,8 @@ newlib64test: newlib64 _test_message \
 	$(HTML)/naclfs_tests_x86_64.nexe \
 	$(HTML)/tests_x86_64.nexe $(HTML)/hello_x86_64.nexe
 pnacltest: pnacl _test_message \
-	$(HTML)/naclfs_tests.pexe \
-	$(HTML)/tests.pexe $(HTML)/hello.pexe
+	$(HTML)/naclfs_tests_arm.nexe \
+	$(HTML)/tests_arm.nexe $(HTML)/hello_arm.nexe
 _test_message:
 	@echo "*** building test to $(OBJ_OUT) ***"
 
@@ -265,15 +267,39 @@ $(HTML)/hello_x86_64.nexe: $(OBJ_OUT)/hello.o $(CRT_OBJ) $(OBJS)
 	@echo "linking $@ ..."
 	@$(CXX) $(LDFLAGS) -o $@ $< $(CRT_LIB) $(LIBS)
 
-$(HTML)/naclfs_tests.pexe: $(OBJ_OUT)/naclfs_tests.o
+$(HTML)/naclfs_tests_arm.nexe: $(HTML)/naclfs_tests.pexe
+	@echo "translating $@ ..."
+	@$(PNACLTR) -arch arm -O3 -o $@ $<
+
+$(HTML)/naclfs_tests.pexe: $(HTML)/naclfs_tests.bc
+	@echo "finalizing $@ ..."
+	@$(PNACLFN) -o $@ $<
+
+$(HTML)/naclfs_tests.bc: $(OBJ_OUT)/naclfs_tests.o
 	@echo "linking $@ ..."
 	@$(CXX) $(LDFLAGS) -o $@ $< $(LIBS)
 
-$(HTML)/tests.pexe: $(OBJ_OUT)/tests.o $(CRT_OBJ) $(OBJS)
+$(HTML)/tests_arm.nexe: $(HTML)/tests.pexe
+	@echo "translating $@ ..."
+	@$(PNACLTR) -arch arm -O3 -o $@ $<
+
+$(HTML)/tests.pexe: $(HTML)/tests.bc
+	@echo "finalizing $@ ..."
+	@$(PNACLFN) -o $@ $<
+
+$(HTML)/tests.bc: $(OBJ_OUT)/tests.o $(CRT_OBJ) $(OBJS)
 	@echo "linking $@ ..."
 	@$(CXX) $(LDFLAGS) -o $@ $< $(CRT_LIB) $(LIBS)
 
-$(HTML)/hello.pexe: $(OBJ_OUT)/hello.o $(CRT_OBJ) $(OBJS)
+$(HTML)/hello_arm.nexe: $(HTML)/hello.pexe
+	@echo "translating $@ ..."
+	@$(PNACLTR) -arch arm -O3 -o $@ $<
+
+$(HTML)/hello.pexe: $(HTML)/hello.bc
+	@echo "finalizing $@ ..."
+	@$(PNACLFN) -o $@ $<
+
+$(HTML)/hello.bc: $(OBJ_OUT)/hello.o $(CRT_OBJ) $(OBJS)
 	@echo "linking $@ ..."
 	@$(CXX) $(LDFLAGS) -o $@ $< $(CRT_LIB) $(LIBS)
 
