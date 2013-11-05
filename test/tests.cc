@@ -37,9 +37,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 #include <unistd.h>
 
 #include <vector>
+
+#if !defined(__GLIBC__)
+extern "C" void rewinddir(DIR*);
+#endif  // !defined(__GLIBC__)
 
 static int g_argc;
 static char** g_argv;
@@ -170,6 +175,60 @@ bool test_SystemCall_WriteStandards() {
     ERROR("can not write to /dev/stderr");
   if (close(fd))
     ERROR("close /dev/stderr failed");
+
+  return true;
+}
+
+bool test_POSIX_DirectoryEnumeration() {
+  const char* path = "/test_path";
+  DIR* dir = opendir(path);
+  if (NULL == dir)
+    ERROR("can not opendir /test_path");
+
+  struct dirent* ent;
+  const char* files[] = { "child_dir", "hello" };
+  bool found[] = { false, false };
+  int entries = 0;
+  while (NULL != (ent = readdir(dir))) {
+    for (int i = 0; i < 2; ++i) {
+      if (0 != strcmp(files[i], ent->d_name)) {
+        found[i] = true;
+        break;
+      }
+    }
+    entries++;
+  }
+  if (!found[0])
+    ERROR("readdir can not find child_dir");
+  if (!found[1])
+    ERROR("readdir can not find hello");
+  if (entries != 2)
+    ERROR("readdir didn't return expected numnber of entries");
+
+  rewinddir(dir);
+
+  entries = 0;
+  found[0] = false;
+  found[1] = false;
+  while (NULL != (ent = readdir(dir))) {
+    for (int i = 0; i < 2; ++i) {
+      if (0 != strcmp(files[i], ent->d_name)) {
+        found[i] = true;
+        break;
+      }
+    }
+    entries++;
+  }
+  if (!found[0])
+    ERROR("readdir can not find child_dir");
+  if (!found[1])
+    ERROR("readdir can not find hello");
+  if (entries != 2)
+    ERROR("readdir didn't return expected numnber of entries after rewinddir");
+
+  int result = closedir(dir);
+  if (result != 0)
+    ERROR("closedir fails");
 
   return true;
 }
@@ -517,7 +576,7 @@ extern "C" int naclfs_main(int argc, char** argv) {
   REGISTER_TEST(POSIX, OpenAndCloseStandards);
   REGISTER_TEST(POSIX, WriteStandards);
   // TODO: fstat, fcntl
-  // TODO: dirent(opendir, rewinddir, readdir, closedir)
+  REGISTER_TEST(POSIX, DirectoryEnumeration);
   REGISTER_TEST(Internal, PathNormalization);
 
   return run_tests();
