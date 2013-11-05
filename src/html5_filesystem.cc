@@ -53,7 +53,6 @@ namespace {
 const int kOffCmd = 2;
 const int kOffData = 3;
 const char* const kRpcId = "X5";
-const char* const kCmdStat = "S";
 const char* const kCmdDir = "D";
 
 int PPErrorToErrNo(int pp_error) {
@@ -275,44 +274,27 @@ int Html5FileSystem::StatCall(Arguments* arguments,
 
   if (waiting_) {
     waiting_ = false;
-    if (arguments->result.callback) {
+    if (arguments->result.callback == PP_ERROR_NOTAFILE) {
+      // For now, it means that the specified path is a directory.
+      arguments->result.callback = PP_OK;
+      memset(buf, 0, sizeof(struct stat));
+      buf->st_mode = S_IRUSR | S_IWUSR | S_IXUSR |
+                     S_IRGRP | S_IWGRP | S_IXGRP |
+                     S_IROTH | S_IWOTH | S_IXOTH |
+                     S_IFDIR;
+      return 0;
+    } else if (arguments->result.callback) {
       std::stringstream ss;
       ss << "Html5FileSystem::StatCall got call back failure result "
          << arguments->result.callback << std::endl;
       naclfs_->Log(ss.str().c_str());
-    }
-    if (arguments->result.callback == PP_ERROR_FAILED) {
-      // TODO: Queries on directories seem to fail with PP_ERROR_FAILED.
-      // See, http://crbug.com/132201
-      naclfs_->Log(" ... apply workaround for http://crbug.com/132201\n");
-      std::stringstream ss;
-      ss << kRpcId << kCmdStat << path;
-      // As a workaround, request JavaScript to proxy the query.
-      rpc_object_ = this;
-      remoting_ = true;
-      arguments->chaining = true;
-      naclfs_->PostMessage(pp::Var(ss.str()));
-      return 0;
+      return PPErrorToErrNo(arguments->result.callback);
     }
 
-    if (arguments->result.callback)
-      return PPErrorToErrNo(arguments->result.callback);
     querying_ = true;
     arguments->chaining = true;
     file_io_->Query(&file_info_, callback_);
     return 0;
-  }
-
-  if (remoting_) {
-    remoting_ = false;
-    rpc_object_ = NULL;
-    memset(buf, 0, sizeof(struct stat));
-    if (!arguments->result.callback)
-      buf->st_mode = S_IFDIR |
-                     S_IRUSR | S_IWUSR | S_IXUSR |
-                     S_IRGRP | S_IWGRP | S_IXGRP |
-                     S_IROTH | S_IWOTH | S_IXOTH;
-    return arguments->result.callback;
   }
 
   if (querying_) {
@@ -607,10 +589,7 @@ bool Html5FileSystem::HandleMessage(const pp::Var& message) {
   std::string s = message.AsString();
   if (s.find(kRpcId) != 0)
     return false;
-  if (s[kOffCmd] == kCmdStat[0]) {
-    rpc_object_->callback_.Run(s[kOffData] - '0');
-    return true;
-  } else if (s[kOffCmd] == kCmdDir[0]) {
+  if (s[kOffCmd] == kCmdDir[0]) {
     if (s[kOffData] != '_') {
       if (rpc_object_->dirent_)
         rpc_object_->dirent_->push_back(s.substr(kOffData));

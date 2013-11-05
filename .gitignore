@@ -1,0 +1,7 @@
+*.nexe
+*.pexe
+*.bc
+html/glibc/*.nmf
+html/glibc/lib32
+html/glibc/lib64
+obj

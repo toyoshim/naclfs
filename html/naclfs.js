@@ -101,25 +101,8 @@ naclfs.prototype._dispatchRPC = function (data) {
     return;
   }
   var cmd = data[2];
-  if (cmd == 'S')
-    this._stat(data.slice(3));
-  else if (cmd == 'D')
+  if (cmd == 'D')
     this._dirlist(data.slice(3));
-};
-
-naclfs.prototype._stat = function (path) {
-  console.info('naclfs rpc: directory stat request; path=' + path);
-  if (!naclfs.fs) {
-    this._element.postMessage('X5S/');  // return -1
-    return;
-  }
-  naclfs.fs.root.getDirectory(path, {}, function () {
-    console.info(' => 0');
-    this._element.postMessage('X5S0');  // return 0
-  }.bind(this), function () {
-    console.info(' => -1');
-    this._element.postMessage('X5S/');  // return -1
-  }.bind(this));
 };
 
 naclfs.prototype._dirlist = function (path) {
