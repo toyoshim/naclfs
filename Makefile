@@ -46,6 +46,7 @@ OSNAME	:= $(shell python $(NACL_SDK_ROOT)/tools/getos.py)
 TC_PATH	:= $(NACL_SDK_ROOT)/toolchain/$(OSNAME)_x86_$(TC_TYPE)
 USR32_PATH	:= $(TC_PATH)/i686-nacl/usr
 USR64_PATH	:= $(TC_PATH)/x86_64-nacl/usr
+USRPNACL_PATH	:= $(TC_PATH)/newlib/usr
 LD32_PATH	:= $(NACL_SDK_ROOT)/lib/$(TC_TYPE)_x86_32/Release
 LD64_PATH	:= $(NACL_SDK_ROOT)/lib/$(TC_TYPE)_x86_64/Release
 ifeq ($(findstring pnacl, $(MAKECMDGOALS)), pnacl)
@@ -110,7 +111,7 @@ install:
 .PHONY: _glibc_install_message _newlibc_install_message _pnacl_install _common_install
 glibcinstall: glibc _glibc_install_message _common_install
 newlibinstall: newlib _newlib_install_message _common_install
-pnaclinstall: pnacl _pnacl_install_message _common_install
+pnaclinstall: pnacl _pnacl_install_message _pnacl_install
 
 _glibc_install_message:
 	@echo "*** installing glibc libraries and tools ***"
@@ -125,21 +126,32 @@ _common_install:
 	@echo "*** installing 32-bit library and tool ***"
 	@install -d $(USR32_PATH)/bin
 	@install -d $(USR32_PATH)/lib/naclfs
-	@install obj/$(TC_TYPE)-i686/libnaclfs.a $(USR32_PATH)/lib
-	@if [ -f obj/$(TC_TYPE)-i686/libnaclfs.so ]; then \
-		install obj/$(TC_TYPE)-i686/libnaclfs.so $(USR32_PATH)/lib; \
+	@install obj/$(TC_TYPE)-i686-nacl/libnaclfs.a $(USR32_PATH)/lib
+	@if [ -f obj/$(TC_TYPE)-i686-nacl/libnaclfs.so ]; then \
+		install obj/$(TC_TYPE)-i686-nacl/libnaclfs.so $(USR32_PATH)/lib; \
 	fi
 	@install bin/install-naclfs-config $(USR32_PATH)/bin/naclfs-config
 	@install html/naclfs.js $(USR32_PATH)/lib/naclfs
 	@echo "*** installing 64-bit library and tool ***"
 	@install -d $(USR64_PATH)/bin
 	@install -d $(USR64_PATH)/lib/naclfs
-	@install obj/$(TC_TYPE)-x86_64/libnaclfs.a $(USR64_PATH)/lib
-	@if [ -f obj/$(TC_TYPE)-x86_64/libnaclfs.so ]; then \
-		install obj/$(TC_TYPE)-x86_64/libnaclfs.so $(USR64_PATH)/lib; \
+	@install obj/$(TC_TYPE)-x86_64-nacl/libnaclfs.a $(USR64_PATH)/lib
+	@if [ -f obj/$(TC_TYPE)-x86_64-nacl/libnaclfs.so ]; then \
+		install obj/$(TC_TYPE)-x86_64-nacl/libnaclfs.so $(USR64_PATH)/lib; \
 	fi
 	@install bin/install-naclfs-config $(USR64_PATH)/bin/naclfs-config
 	@install html/naclfs.js $(USR64_PATH)/lib/naclfs
+
+_pnacl_install:
+	@echo "*** installing pnacl library and tool ***"
+	@install -d $(USRPNACL_PATH)/bin
+	@install -d $(USRPNACL_PATH)/lib/naclfs
+	@install obj/$(TC_TYPE)-pnacl/libnaclfs.a $(USRPNACL_PATH)/lib
+	@if [ -f obj/$(TC_TYPE)-pnacl/libnaclfs.so ]; then \
+		install obj/$(TC_TYPE)-pnacl/libnaclfs.so $(USRPNACL_PATH)/lib; \
+	fi
+	@install bin/install-naclfs-config $(USRPNACL_PATH)/bin/naclfs-config
+	@install html/naclfs.js $(USRPNACL_PATH)/lib/naclfs
 
 help:
 	@echo "make target"
