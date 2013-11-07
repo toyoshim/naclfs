@@ -93,9 +93,7 @@ class Html5FileSystem : public FileSystem::Delegate {
   NaClFs* naclfs_;
   bool waiting_;
   bool querying_;
-  bool remoting_;
   off_t offset_;
-  std::vector<std::string>* dirent_;
 };
 
 }  // namespace naclfs

@@ -50,11 +50,6 @@
 
 namespace {
 
-const int kOffCmd = 2;
-const int kOffData = 3;
-const char* const kRpcId = "X5";
-const char* const kCmdDir = "D";
-
 int PPErrorToErrNo(int pp_error) {
   switch (pp_error) {
    case PP_ERROR_NOACCESS:
@@ -89,47 +84,30 @@ class Html5FileSystemDir
     : Dir(owner),
       pp::CompletionCallbackFactory<Html5FileSystemDir>(this),
       directory_ref_(directory_ref),
-      entries_(NULL),
       offset_(0),
       read_(false) {}
 
-  virtual ~Html5FileSystemDir() {
-    if (entries_)
-      delete entries_;
-  }
-
-  void SetEntries(std::vector<std::string>* entries) {
-    entries_ = entries;
-    offset_ = 0;
-    read_ = false;
-  }
+  virtual ~Html5FileSystemDir() {}
 
   int32_t ReadDir(const pp::CompletionCallback& cc) {
     if (read_)
       return PP_OK;
+    Rewind();
     int32_t result = directory_ref_.ReadDirectoryEntries(
         NewCallbackWithOutput(&Html5FileSystemDir::OnReadDirectoryEntries));
-    if (result == PP_OK)
-      ReadDirComplete();
-    else if (result == PP_OK_COMPLETIONPENDING)
+    if (result == PP_OK_COMPLETIONPENDING)
       callback_ = cc;
     return result;
   }
 
-  struct dirent* ReadDirComplete() {
-    // TODO(toyoshim): Fix.
+  struct dirent* ReadDirNext() {
+    if (offset_ >= entries_.size())
+      return NULL;
     memset(&dirent_, 0, sizeof(struct dirent));
-    std::string name;
-    if (entries_) {
-      if (entries_->size() == offset_)
-        return NULL;
-      name = (*entries_)[offset_++].substr(1);
-    } else {
-      name = entry_.file_ref().GetName().AsString();
-    }
-    strncpy(dirent_.d_name, name.c_str(), 256);
-    if (name.length() > 255)
+    strncpy(dirent_.d_name, entries_[offset_].c_str(), 256);
+    if (entries_[offset_].length() > 255)
       dirent_.d_name[255] = 0;
+    offset_++;
     return &dirent_;
   }
 
@@ -141,8 +119,10 @@ class Html5FileSystemDir
   void OnReadDirectoryEntries(
       int32_t result, const std::vector<pp::DirectoryEntry>& entries) {
     if (result == PP_OK) {
+      for (size_t i = 0; i < entries.size(); ++i) {
+        entries_.push_back(entries[i].file_ref().GetName().AsString());
+      }
       read_ = true;
-      // TODO(toyoshim): Convert entries to entties_.
     }
     callback_.RunAndClear(result);
   }
@@ -151,7 +131,7 @@ class Html5FileSystemDir
   pp::DirectoryEntry entry_;
   pp::CompletionCallback callback_;
   struct dirent dirent_;
-  std::vector<std::string>* entries_;
+  std::vector<std::string> entries_;
   size_t offset_;
   bool read_;
 };
@@ -171,7 +151,6 @@ Html5FileSystem::Html5FileSystem(NaClFs* naclfs)
       naclfs_(naclfs),
       waiting_(false),
       querying_(false),
-      remoting_(false),
       offset_(0) {
 }
 
@@ -503,36 +482,9 @@ DIR* Html5FileSystem::OpenDirCall(Arguments* arguments, const char* dirname) {
     Initialize(arguments);
     return NULL;
   }
-  if (remoting_) {
-    rpc_object_ = NULL;
-    remoting_ = false;
-    if (arguments->result.callback) {
-      // Checked in JavaScript, and found that |dirname| was not a directory.
-      delete dirent_;
-      dirent_ = NULL;
-      return NULL;
-    }
 
-    pp::FileRef file_ref(*filesystem_, dirname);
-    Html5FileSystemDir* dir = new Html5FileSystemDir(this, file_ref);
-    if (dir)
-      dir->SetEntries(dirent_);
-    else
-      delete dirent_;
-    dirent_ = NULL;
-    return reinterpret_cast<DIR*>(dir);
-  }
-
-  // Firstly, check if the directory exists.
-  // TODO: This is a workaround for http://crbug.com/132201
-  std::stringstream ss;
-  ss << kRpcId << kCmdDir << dirname;
-  rpc_object_ = this;
-  remoting_ = true;
-  arguments->chaining = true;
-  dirent_ = new std::vector<std::string>();
-  naclfs_->PostMessage(pp::Var(ss.str()));
-  return NULL;
+  pp::FileRef file_ref(*filesystem_, dirname);
+  return reinterpret_cast<DIR*>(new Html5FileSystemDir(this, file_ref));
 }
 
 void Html5FileSystem::RewindDirCall(Arguments* arguments, DIR* dirp) {
@@ -556,12 +508,12 @@ struct dirent* Html5FileSystem::ReadDirCall(Arguments* arguments, DIR* dirp) {
       naclfs_->Log(ss.str().c_str());
       return NULL;
     }
-    return dir->ReadDirComplete();
+    return dir->ReadDirNext();
   }
 
   int result = dir->ReadDir(callback_);
   if (result == PP_OK)
-    return dir->ReadDirComplete();
+    return dir->ReadDirNext();
 
   if (result == PP_OK_COMPLETIONPENDING) {
     waiting_ = true;
@@ -584,20 +536,6 @@ int Html5FileSystem::CloseDirCall(Arguments* arguments, DIR* dirp) {
 }
 
 bool Html5FileSystem::HandleMessage(const pp::Var& message) {
-  if (!message.is_string() || !rpc_object_)
-    return false;
-  std::string s = message.AsString();
-  if (s.find(kRpcId) != 0)
-    return false;
-  if (s[kOffCmd] == kCmdDir[0]) {
-    if (s[kOffData] != '_') {
-      if (rpc_object_->dirent_)
-        rpc_object_->dirent_->push_back(s.substr(kOffData));
-    } else {
-      rpc_object_->callback_.Run(s[kOffData + 1] - '0');
-    }
-    return true;
-  }
   return false;
 }
 
