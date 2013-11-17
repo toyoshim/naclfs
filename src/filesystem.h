@@ -199,9 +199,6 @@ class FileSystem {
     pp::CompletionCallback callback_;
 
    private:
-    void Wait();
-    void Signal();
-
     void Call(Arguments& arguments);
     static void Proxy(void* param, int32_t result);
     static void Switch(Arguments* arguments);

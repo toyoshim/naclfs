@@ -55,6 +55,7 @@ class NaClFs {
   NaClFs(pp::Instance* instance);
   ~NaClFs();
 
+  // TODO: Make these function thread safe
   static bool trace() { return trace_; }
   static void set_trace(bool enable) { trace_ = enable; }
   static void Log(const char* message);
@@ -67,8 +68,6 @@ class NaClFs {
 
  private:
   static void PostMessageFromMainThread(void* param, int32_t result);
-  void Wait();
-  void Signal();
 
   static NaClFs* single_instance_;
   static bool trace_;

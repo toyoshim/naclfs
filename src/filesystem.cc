@@ -222,22 +222,12 @@ int FileSystem::Delegate::CloseDir(DIR* dirp) {
   return arguments.result.closedir;
 }
 
-void FileSystem::Delegate::Wait() {
-  pthread_mutex_lock(&mutex_);
-  pthread_cond_wait(&cond_, &mutex_);
-  pthread_mutex_unlock(&mutex_);
-}
-
-void FileSystem::Delegate::Signal() {
-  pthread_mutex_lock(&mutex_);
-  pthread_cond_signal(&cond_);
-  pthread_mutex_unlock(&mutex_);
-}
-
 void FileSystem::Delegate::Call(Arguments& arguments) {
   callback_ = pp::CompletionCallback(Proxy, &arguments);
+  pthread_mutex_lock(&mutex_);
   core_->CallOnMainThread(0, pp::CompletionCallback(Proxy, &arguments));
-  Wait();
+  pthread_cond_wait(&cond_, &mutex_);
+  pthread_mutex_unlock(&mutex_);
 }
 
 void FileSystem::Delegate::Proxy(void* param, int32_t result) {
@@ -245,8 +235,11 @@ void FileSystem::Delegate::Proxy(void* param, int32_t result) {
   arguments->result.callback = result;
   arguments->chaining = false;
   arguments->delegate->Switch(arguments);
-  if (!arguments->chaining)
-    arguments->delegate->Signal();
+  if (!arguments->chaining) {
+    pthread_mutex_lock(&mutex_);
+    pthread_cond_signal(&cond_);
+    pthread_mutex_unlock(&mutex_);
+  }
 }
 
 void FileSystem::Delegate::Switch(Arguments* arguments) {

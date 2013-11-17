@@ -76,10 +76,12 @@ void NaClFs::PostMessage(const pp::Var& message) {
   if (single_instance_->core_->IsMainThread()) {
     single_instance_->instance_->PostMessage(message);
   } else {
+    pthread_mutex_lock(&single_instance_->mutex_);
     single_instance_->core_->CallOnMainThread(
         0, pp::CompletionCallback(PostMessageFromMainThread,
                                   const_cast<pp::Var*>(&message)));
-    single_instance_->Wait();
+    pthread_cond_wait(&single_instance_->cond_, &single_instance_->mutex_);
+    pthread_mutex_unlock(&single_instance_->mutex_);
   }
 }
 
@@ -90,19 +92,9 @@ bool NaClFs::HandleMessage(const pp::Var& message) {
 void NaClFs::PostMessageFromMainThread(void* param, int32_t result) {
   const pp::Var* message = static_cast<pp::Var*>(param);
   single_instance_->instance_->PostMessage(*message);
-  single_instance_->Signal();
-}
-
-void NaClFs::Wait() {
-  pthread_mutex_lock(&mutex_);
-  pthread_cond_wait(&cond_, &mutex_);
-  pthread_mutex_unlock(&mutex_);
-}
-
-void NaClFs::Signal() {
-  pthread_mutex_lock(&mutex_);
-  pthread_cond_signal(&cond_);
-  pthread_mutex_unlock(&mutex_);
+  pthread_mutex_lock(&single_instance_->mutex_);
+  pthread_cond_signal(&single_instance_->cond_);
+  pthread_mutex_unlock(&single_instance_->mutex_);
 }
 
 }  // namespace naclfs
