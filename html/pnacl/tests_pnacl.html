@@ -31,15 +31,15 @@
   DAMAGE.
   -->
 <head>
-  <title>naclfs hello</title>
+  <title>tests</title>
 
   <script type="text/javascript"
     src="http://terminal-js.googlecode.com/git/term.js"></script>
-  <script type="text/javascript" src="../../naclfs.js"></script>
+  <script type="text/javascript" src="../naclfs.js"></script>
 </head>
 <body>
 
-<h1>naclfs hello</h1>
+<h1>tests</h1>
 <p>
   <div id="listener">
     <pre id="stdout"
@@ -61,7 +61,7 @@
       moduleDidLoad = function () {
         document.getElementById('statusField').innerHTML = 'SUCCESS';
 
-        naclfsModule = new naclfs(document.getElementById('hello'));
+        naclfsModule = new naclfs(document.getElementById('tests'));
         naclfsModule.appendStdOut = terminalOut.appendString.bind(terminalOut);
         naclfsModule.appendStdErr = terminalErr.appendString.bind(terminalErr);
         naclfsModule.appendConsole = console.log.bind(console);
@@ -79,22 +79,15 @@
 
     </script>
 
-    <!--embed name="nacl_module"
-           id="hello"
-           width=0 height=0
-           src="hello.pmf"
-           type="application/x-pnacl"
-           argc=2
-           argv0="./hello"
-           argv1="hello world" /-->
     <embed name="nacl_module"
-           id="hello"
+           id="tests"
            width=0 height=0
-           src="hello.nmf"
-           type="application/x-nacl"
-           argc=2
-           argv0="./hello"
-           argv1="hello world" />
+           src="tests.pmf"
+           type="application/x-pnacl"
+           argc=3
+           argv0="tests"
+           argv1="foo"
+           argv2="bar" />
   </div>
 
 </p>

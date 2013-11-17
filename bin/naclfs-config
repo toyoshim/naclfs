@@ -1,41 +1,53 @@
 #!/bin/bash
 
+DIRNAME="`dirname $0`"
+TOOLCHAIN=$2
+LIBBASE="$DIRNAME/../obj"
+LIBPATH="$LIBBASE/$2"
+LIBPATH32="$LIBPATH/glibc-i686"
+LIBPATH64="$LIBPATH/glibc-x86_64"
+INCBASE="$DIRNAME/../src"
+
 function _wrap() {
   /bin/echo -n "-Xlinker --wrap -Xlinker $1 "
 }
 
 function cflags() {
-  /bin/echo -n "-I$1/../src -Dmain=naclfs_main -Deaccess=access"
+  /bin/echo -n "-I$INCBASE -pthread -Dmain=naclfs_main -Deaccess=access"
+  if [ $1 = "pnacl" ]; then
+    /bin/echo -n " -Daccess=__wrap_access"
+    /bin/echo -n " -Disatty=__wrap_isatty"
+    /bin/echo -n " -Dfcntl=__wrap_fcntl"
+  fi
 }
 
 function crt() {
-  if [ $2 = "pnacl" ]; then
-    /bin/echo -n "$1/../obj/$2/newlib-$2/naclfs_crt.o"
-  else
-    /bin/echo -n "$1/../obj/$2-nacl/naclfs_crt.o"
-  fi
+  /bin/echo -n "$LIBPATH/naclfs_crt.o"
 }
 
 function libs() {
-  _wrap "access"
-  _wrap "isatty"
-  _wrap "fcntl"
-  /bin/echo -n "-L$NACL_SDK_ROOT/lib/"
-  /bin/echo -n "$2/Release " | sed -e 's/-/_/' | sed -e 's/i686/x86_32/'
-  if [ $2 = "pnacl" ]; then
-    /bin/echo -n "-L$1/../obj/$2/newlib-$2 -lnaclfs -lppapi_cpp -lstdc++"
-  else
-    /bin/echo -n "-L$1/../obj/$2-nacl -lnaclfs -lppapi_cpp -lstdc++"
+  if [ $1 != "pnacl" ]; then
+    _wrap "access"
+    _wrap "isatty"
+    _wrap "fcntl"
   fi
+  /bin/echo -n "-L$NACL_SDK_ROOT/lib/"
+  /bin/echo -n "$1/Release" | sed -e 's/-/_/' | sed -e 's/i686/x86_32/'
+  /bin/echo -n " -L$LIBPATH"
+  /bin/echo -n " -lnaclfs -lppapi -lppapi_cpp -lstdc++ -lpthread"
 }
 
 function nmf() {
-  /bin/echo -n "-L $1/../obj/glibc-i686-nacl -L $1/../obj/glibc-x86_64-nacl"
+  /bin/echo -n "-L$LIBPATH32 -L$LIBPATH64"
+}
+
+function version() {
+  /bin/echo "0.2.0"
 }
 
 function help() {
-  /bin/echo -n "Usage: naclfs-config [--cflags toolchain] [--libs toolchain] "
-  echo "[--nmf] [--crt toolchain]"
+  /bin/echo -n "Usage: naclfs-config --cflags toolchain | "
+  echo "--libs toolchain | --nmf | --crt toolchain | version"
   echo "  toolchain:"
   echo "    newlib-i686   ... 32-bit static library for newlib"
   echo "    newlib-x86_64 ... 64-bit static library for newlib"
@@ -44,14 +56,11 @@ function help() {
   echo "    pnacl         ... static library for pnacl"
 }
 
-DIRNAME="`dirname $0`"
-TOOLCHAIN=$2
-
 case $1 in
-  --cflags) cflags $DIRNAME $TOOLCHAIN;;
-  --crt) crt $DIRNAME $TOOLCHAIN;;
-  --libs) libs $DIRNAME $TOOLCHAIN;;
+  --cflags) cflags $TOOLCHAIN;;
+  --crt) crt $TOOLCHAIN;;
+  --libs) libs $TOOLCHAIN;;
   --nmf) nmf $DIRNAME;;
+  --version) version;;
   *) help;;
 esac
-

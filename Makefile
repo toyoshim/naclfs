@@ -28,67 +28,71 @@
 # OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
 # DAMAGE.
 #
+
+# LIBC_TYPE: newlib | glibc
+# LIBC_CFLAGS: ...
+# TC_CXX: clang++ | g++
+# TC_TYPE: pnacl | x86_newlib | x86_glibc
+# ARCH_TYPE: pnacl | i686-nacl | x86_64-nacl
+# ARCH_CFLAGS: ...
+# TARGET_TYPE: pnacl | newlib-i686 | newlib-x86_64 | glibc-i686 | glibc-x86_64
 ifeq ($(findstring pnacl, $(MAKECMDGOALS)), pnacl)
-  TC_TYPE	:= pnacl/newlib
+  LIBC_TYPE	:= newlib
+  LIBC_CFLAGS	:=
   TC_CXX	:= clang++
+  TC_TYPE	:= pnacl
+  ARCH_TYPE	:= pnacl
   ARCH_CFLAGS	:=
+  TARGET_TYPE	:= pnacl
 else
-  TC_CXX	:= g++
   ifeq ($(findstring newlib, $(MAKECMDGOALS)), newlib)
-    TC_TYPE	:= newlib
-    ARCH_CFLAGS	:=
+    LIBC_TYPE	:= newlib
+    LIBC_CFLAGS	:=
   else
-    TC_TYPE	:= glibc
-    ARCH_CFLAGS	:= -fPIC
+    LIBC_TYPE	:= glibc
+    LIBC_CFLAGS	:= -fPIC
+  endif
+  TC_CXX	:= g++
+  TC_TYPE	:= x86_$(LIBC_TYPE)
+  ifeq ($(findstring 32, $(MAKECMDGOALS)), 32)
+    ARCH_TYPE	:= i686-nacl
+    ARCH_CFLAGS	:= -m32
+    TARGET_TYPE	:= $(LIBC_TYPE)-i686
+  else
+    ARCH_TYPE	:= x86_64-nacl
+    ARCH_CFLAGS	:= -m64
+    TARGET_TYPE	:= $(LIBC_TYPE)-x86_64
   endif
 endif
 OSNAME	:= $(shell python $(NACL_SDK_ROOT)/tools/getos.py)
-TC_PATH	:= $(NACL_SDK_ROOT)/toolchain/$(OSNAME)_x86_$(TC_TYPE)
+TC_PATH	:= $(NACL_SDK_ROOT)/toolchain/$(OSNAME)_$(TC_TYPE)
+
 USR32_PATH	:= $(TC_PATH)/i686-nacl/usr
 USR64_PATH	:= $(TC_PATH)/x86_64-nacl/usr
-USRPNACL_PATH	:= $(TC_PATH)/newlib/usr
-LD32_PATH	:= $(NACL_SDK_ROOT)/lib/$(TC_TYPE)_x86_32/Release
-LD64_PATH	:= $(NACL_SDK_ROOT)/lib/$(TC_TYPE)_x86_64/Release
-ifeq ($(findstring pnacl, $(MAKECMDGOALS)), pnacl)
-  ARCH		:= pnacl
-  TC_NAME	:= pnacl
-  LD_PATH	:= $(NACL_SDK_ROOT)/lib/pnacl/Release
-else
-  ifeq ($(findstring 32, $(MAKECMDGOALS)), 32)
-    ARCH		:= i686-nacl
-    ARCH_CFLAGS	+= -m32
-    TC_NAME	:= $(TC_TYPE)-i686
-    LD_PATH	:= $(LD32_PATH)
-  else
-    ARCH		:= x86_64-nacl
-    ARCH_CFLAGS	+= -m64
-    TC_NAME	:= $(TC_TYPE)-x86_64
-    LD_PATH	:= $(LD64_PATH)
-  endif
-endif
+USRPNACL_PATH	:= $(TC_PATH)/usr
+
 CYGWIN ?= nodosfilewarning
 export CYGWIN
 
-CXX	:= $(TC_PATH)/bin/$(ARCH)-$(TC_CXX)
-AR	:= $(TC_PATH)/bin/$(ARCH)-ar
-RANLIB	:= $(TC_PATH)/bin/$(ARCH)-ranlib
-OBJDUMP	:= $(TC_PATH)/bin/$(ARCH)-objdump
-PNACLFN	:= $(TC_PATH)/bin/$(ARCH)-finalize
-PNACLTR	:= $(TC_PATH)/bin/$(ARCH)-translate
+CXX	:= $(TC_PATH)/bin/$(ARCH_TYPE)-$(TC_CXX)
+AR	:= $(TC_PATH)/bin/$(ARCH_TYPE)-ar
+RANLIB	:= $(TC_PATH)/bin/$(ARCH_TYPE)-ranlib
+OBJDUMP	:= $(TC_PATH)/bin/$(ARCH_TYPE)-objdump
+PNACLFN	:= $(TC_PATH)/bin/$(ARCH_TYPE)-finalize
+PNACLTR	:= $(TC_PATH)/bin/$(ARCH_TYPE)-translate
 NMFGEN	:= $(NACL_SDK_ROOT)/tools/create_nmf.py
-CFLAGS	:= $(ARCH_CFLAGS) -O9 -g -Wall -pthread -I$(NACL_SDK_ROOT)/include\
-	   `./bin/naclfs-config --cflags $(TC_NAME)`
-OBJ_OUT	:= obj/$(TC_TYPE)-$(ARCH)
+CFLAGS	:= $(LIBC_CFLAGS) $(ARCH_CFLAGS) -O9 -g -Wall \
+	   -I$(NACL_SDK_ROOT)/include \
+	   `./bin/naclfs-config --cflags $(TARGET_TYPE)`
+OBJ_OUT	:= obj/$(TARGET_TYPE)
 HTML	:= html/$(TC_TYPE)
 SRCS	:= src/wrap.cc src/naclfs.cc src/filesystem.cc src/port_filesystem.cc \
 	   src/html5_filesystem.cc
 CRT_SRC	:= src/naclfs_crt.cc
 OBJS	:= $(patsubst src/%.cc, $(OBJ_OUT)/%.o, $(SRCS))
 CRT_OBJ	:= $(OBJ_OUT)/naclfs_crt.o
-LIBS	:= `./bin/naclfs-config --libs $(TC_NAME)` \
-	   -lppapi -lppapi_cpp -lpthread
-CRT_LIB	:= `./bin/naclfs-config --crt $(TC_NAME)`
-LDFLAGS	:= -L$(LD_PATH)
+CRT_LIB	:= `./bin/naclfs-config --crt $(TARGET_TYPE)`
+LDFLAGS	:= `./bin/naclfs-config --libs $(TARGET_TYPE)`
 
 .PHONY: all clean install glibcinstall newlibinstall default help
 default: help
@@ -99,9 +103,10 @@ all:
 	@$(MAKE) pnacltest
 
 clean:
-	@rm -rf obj html/*/*.nexe html/*/*/*.nexe html/*/*/*.pexe html/*/*/*.bc \
-		html/glibc/naclfs_tests.nmf html/glibc/tests.nmf html/glibc/hello.nmf \
-		html/glibc/lib32 html/glibc/lib64
+	@rm -rf obj html/*/*.nexe html/*/*.pexe html/*/*.bc \
+		html/x86_glibc/lib32 html/x86_glibc/lib64 \
+		html/x86_glibc/naclfs_tests.nmf html/x86_glibc/tests.nmf \
+		html/x86_glibc/hello.nmf
 
 install:
 	@$(MAKE) glibcinstall
@@ -114,41 +119,41 @@ newlibinstall: newlib _newlib_install_message _common_install
 pnaclinstall: pnacl _pnacl_install_message _pnacl_install
 
 _glibc_install_message:
-	@echo "*** installing glibc libraries and tools ***"
+	@echo "--- installing glibc libraries and tools ---"
 
 _newlib_install_message:
-	@echo "*** installing newlib libraries and tools ***"
+	@echo "--- installing newlib libraries and tools ---"
 
 _pnacl_install_message:
-	@echo "*** installing pnacl libraries and tools ***"
+	@echo "--- installing pnacl libraries and tools ---"
 
 _common_install:
-	@echo "*** installing 32-bit library and tool ***"
+	@echo "--- installing 32-bit library and tool ---"
 	@install -d $(USR32_PATH)/bin
 	@install -d $(USR32_PATH)/lib/naclfs
-	@install obj/$(TC_TYPE)-i686-nacl/libnaclfs.a $(USR32_PATH)/lib
-	@if [ -f obj/$(TC_TYPE)-i686-nacl/libnaclfs.so ]; then \
-		install obj/$(TC_TYPE)-i686-nacl/libnaclfs.so $(USR32_PATH)/lib; \
+	@install obj/$(LIBC_TYPE)-i686/libnaclfs.a $(USR32_PATH)/lib
+	@if [ -f obj/$(LIBC_TYPE)-i686/libnaclfs.so ]; then \
+	  install obj/$(LIBC_TYPE)-i686/libnaclfs.so $(USR32_PATH)/lib; \
 	fi
 	@install bin/install-naclfs-config $(USR32_PATH)/bin/naclfs-config
 	@install html/naclfs.js $(USR32_PATH)/lib/naclfs
-	@echo "*** installing 64-bit library and tool ***"
+	@echo "--- installing 64-bit library and tool ---"
 	@install -d $(USR64_PATH)/bin
 	@install -d $(USR64_PATH)/lib/naclfs
-	@install obj/$(TC_TYPE)-x86_64-nacl/libnaclfs.a $(USR64_PATH)/lib
-	@if [ -f obj/$(TC_TYPE)-x86_64-nacl/libnaclfs.so ]; then \
-		install obj/$(TC_TYPE)-x86_64-nacl/libnaclfs.so $(USR64_PATH)/lib; \
+	@install obj/$(LIBC_TYPE)-x86_64/libnaclfs.a $(USR64_PATH)/lib
+	@if [ -f obj/$(LIBC_TYPE)-x86_64/libnaclfs.so ]; then \
+	  install obj/$(LIBC_TYPE)-x86_64/libnaclfs.so $(USR64_PATH)/lib; \
 	fi
 	@install bin/install-naclfs-config $(USR64_PATH)/bin/naclfs-config
 	@install html/naclfs.js $(USR64_PATH)/lib/naclfs
 
 _pnacl_install:
-	@echo "*** installing pnacl library and tool ***"
+	@echo "--- installing pnacl library and tool ---"
 	@install -d $(USRPNACL_PATH)/bin
 	@install -d $(USRPNACL_PATH)/lib/naclfs
-	@install obj/$(TC_TYPE)-pnacl/libnaclfs.a $(USRPNACL_PATH)/lib
-	@if [ -f obj/$(TC_TYPE)-pnacl/libnaclfs.so ]; then \
-		install obj/$(TC_TYPE)-pnacl/libnaclfs.so $(USRPNACL_PATH)/lib; \
+	@install obj/pnacl/libnaclfs.a $(USRPNACL_PATH)/lib
+	@if [ -f obj/pnacl/libnaclfs.so ]; then \
+	  install obj/pnacl/libnaclfs.so $(USRPNACL_PATH)/lib; \
 	fi
 	@install bin/install-naclfs-config $(USRPNACL_PATH)/bin/naclfs-config
 	@install html/naclfs.js $(USRPNACL_PATH)/lib/naclfs
@@ -191,29 +196,29 @@ newlib32: _lib_message $(OBJ_OUT)/libnaclfs.a $(CRT_OBJ)
 newlib64: _lib_message $(OBJ_OUT)/libnaclfs.a $(CRT_OBJ)
 pnacl: _lib_message $(OBJ_OUT)/libnaclfs.a $(CRT_OBJ)
 _lib_message:
-	@echo "*** building library to $(OBJ_OUT) ***"
+	@echo "--- building library to $(OBJ_OUT) ---"
 
 .PHONY: glibctest glibc32test glibc64test \
 	newlibtest newlib32test newlib64test pnacltest _test_message
 glibctest:
 	@$(MAKE) glibc32test
 	@$(MAKE) glibc64test
-	@echo "*** generating nmf for glibc ***"
-	@$(NMFGEN) -D $(OBJDUMP) -o html/glibc/naclfs_tests.nmf \
-		-L$(LD32_PATH) -L$(LD64_PATH) `./bin/naclfs-config --nmf` \
-		html/glibc/naclfs_tests_x86_32.nexe \
-		html/glibc/naclfs_tests_x86_64.nexe \
-		-s html/glibc
-	@$(NMFGEN) -D $(OBJDUMP) -o html/glibc/tests.nmf \
-		-L$(LD32_PATH) -L$(LD64_PATH) `./bin/naclfs-config --nmf` \
-		html/glibc/tests_x86_32.nexe \
-		html/glibc/tests_x86_64.nexe \
-		-s html/glibc
-	@$(NMFGEN) -D $(OBJDUMP) -o html/glibc/hello.nmf \
-		-L$(LD32_PATH) -L$(LD64_PATH) `./bin/naclfs-config --nmf` \
-		html/glibc/hello_x86_32.nexe \
-		html/glibc/hello_x86_64.nexe \
-		-s html/glibc
+	@echo "--- generating nmf for glibc ---"
+	@$(NMFGEN) -o html/x86_glibc/naclfs_tests.nmf \
+		`./bin/naclfs-config --nmf` \
+		html/x86_glibc/naclfs_tests_x86_32.nexe \
+		html/x86_glibc/naclfs_tests_x86_64.nexe \
+		-s html/x86_glibc
+	@$(NMFGEN) -o html/x86_glibc/tests.nmf \
+		`./bin/naclfs-config --nmf` \
+		html/x86_glibc/tests_x86_32.nexe \
+		html/x86_glibc/tests_x86_64.nexe \
+		-s html/x86_glibc
+	@$(NMFGEN) -o html/x86_glibc/hello.nmf \
+		`./bin/naclfs-config --nmf` \
+		html/x86_glibc/hello_x86_32.nexe \
+		html/x86_glibc/hello_x86_64.nexe \
+		-s html/x86_glibc
 glibc32test: glibc32 _test_message \
 	$(HTML)/naclfs_tests_x86_32.nexe \
 	$(HTML)/tests_x86_32.nexe $(HTML)/hello_x86_32.nexe
@@ -233,12 +238,11 @@ pnacltest: pnacl _test_message \
 	$(HTML)/naclfs_tests_arm.nexe \
 	$(HTML)/tests_arm.nexe $(HTML)/hello_arm.nexe
 _test_message:
-	@echo "*** building test to $(OBJ_OUT) ***"
+	@echo "--- building test to $(OBJ_OUT) ---"
 
 $(OBJ_OUT)/libnaclfs.so: $(OBJS)
 	@echo "linking shared library $@ ..."
-	@$(CXX) -shared -Wl,-soname,libnaclfs.so -o $@ $(OBJS) \
-		$(LDFLAGS) -lppapi_cpp -lpthread
+	@$(CXX) -shared -Wl,-soname,libnaclfs.so -o $@ $(OBJS)
 
 $(OBJ_OUT)/libnaclfs.a: $(OBJS)
 	@echo "linking static library $@ ..."
@@ -257,27 +261,27 @@ $(OBJ_OUT)/%.o: test/%.cc
 
 $(HTML)/naclfs_tests_x86_32.nexe: $(OBJ_OUT)/naclfs_tests.o
 	@echo "linking $@ ..."
-	@$(CXX) $(LDFLAGS) -o $@ $< $(LIBS)
+	@$(CXX) -o $@ $< $(LDFLAGS)
 
 $(HTML)/tests_x86_32.nexe: $(OBJ_OUT)/tests.o $(CRT_OBJ) $(OBJS)
 	@echo "linking $@ ..."
-	@$(CXX) $(LDFLAGS) -o $@ $< $(CRT_LIB) $(LIBS)
+	@$(CXX) -o $@ $< $(CRT_LIB) $(LDFLAGS)
 
 $(HTML)/hello_x86_32.nexe: $(OBJ_OUT)/hello.o $(CRT_OBJ) $(OBJS)
 	@echo "linking $@ ..."
-	@$(CXX) $(LDFLAGS) -o $@ $< $(CRT_LIB) $(LIBS)
+	@$(CXX) -o $@ $< $(CRT_LIB) $(LDFLAGS)
 
 $(HTML)/naclfs_tests_x86_64.nexe: $(OBJ_OUT)/naclfs_tests.o
 	@echo "linking $@ ..."
-	@$(CXX) $(LDFLAGS) -o $@ $< $(LIBS)
+	@$(CXX) -o $@ $< $(LDFLAGS)
 
 $(HTML)/tests_x86_64.nexe: $(OBJ_OUT)/tests.o $(CRT_OBJ) $(OBJS)
 	@echo "linking $@ ..."
-	@$(CXX) $(LDFLAGS) -o $@ $< $(CRT_LIB) $(LIBS)
+	@$(CXX) -o $@ $< $(CRT_LIB) $(LDFLAGS)
 
 $(HTML)/hello_x86_64.nexe: $(OBJ_OUT)/hello.o $(CRT_OBJ) $(OBJS)
 	@echo "linking $@ ..."
-	@$(CXX) $(LDFLAGS) -o $@ $< $(CRT_LIB) $(LIBS)
+	@$(CXX) -o $@ $< $(CRT_LIB) $(LDFLAGS)
 
 $(HTML)/naclfs_tests_arm.nexe: $(HTML)/naclfs_tests.pexe
 	@echo "translating $@ ..."
@@ -289,7 +293,7 @@ $(HTML)/naclfs_tests.pexe: $(HTML)/naclfs_tests.bc
 
 $(HTML)/naclfs_tests.bc: $(OBJ_OUT)/naclfs_tests.o
 	@echo "linking $@ ..."
-	@$(CXX) $(LDFLAGS) -o $@ $< $(LIBS)
+	@$(CXX) -O9 -o $@ $< $(LDFLAGS)
 
 $(HTML)/tests_arm.nexe: $(HTML)/tests.pexe
 	@echo "translating $@ ..."
@@ -301,7 +305,7 @@ $(HTML)/tests.pexe: $(HTML)/tests.bc
 
 $(HTML)/tests.bc: $(OBJ_OUT)/tests.o $(CRT_OBJ) $(OBJS)
 	@echo "linking $@ ..."
-	@$(CXX) $(LDFLAGS) -o $@ $< $(CRT_LIB) $(LIBS)
+	@$(CXX) -O9 -o $@ $< $(CRT_LIB) $(LDFLAGS)
 
 $(HTML)/hello_arm.nexe: $(HTML)/hello.pexe
 	@echo "translating $@ ..."
@@ -313,5 +317,5 @@ $(HTML)/hello.pexe: $(HTML)/hello.bc
 
 $(HTML)/hello.bc: $(OBJ_OUT)/hello.o $(CRT_OBJ) $(OBJS)
 	@echo "linking $@ ..."
-	@$(CXX) $(LDFLAGS) -o $@ $< $(CRT_LIB) $(LIBS)
+	@$(CXX) -O9 -o $@ $< $(CRT_LIB) $(LDFLAGS)
 

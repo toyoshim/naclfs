@@ -1,7 +1,7 @@
 *.nexe
 *.pexe
 *.bc
-html/glibc/*.nmf
-html/glibc/lib32
-html/glibc/lib64
+html/x86_glibc/*.nmf
+html/x86_glibc/lib32
+html/x86_glibc/lib64
 obj
