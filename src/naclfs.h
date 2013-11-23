@@ -38,6 +38,8 @@
 
 #include <string>
 
+#include "ppapi/c/pp_file_info.h"
+
 namespace pp {
 
 class Instance;
@@ -58,6 +60,8 @@ class NaClFs {
   // TODO: Make these function thread safe
   static bool trace() { return trace_; }
   static void set_trace(bool enable) { trace_ = enable; }
+  static PP_FileSystemType filesystem_type() { return filesystem_type_; }
+  static void set_filesystem_type(PP_FileSystemType type) { filesystem_type_ = type; }
   static void Log(const char* message);
 
   static FileSystem* GetFileSystem() { return single_instance_->filesystem_; }
@@ -71,6 +75,7 @@ class NaClFs {
 
   static NaClFs* single_instance_;
   static bool trace_;
+  static PP_FileSystemType filesystem_type_;
   FileSystem* filesystem_;
   pp::Core* core_;
   pp::Instance* instance_;

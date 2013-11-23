@@ -542,7 +542,7 @@ bool Html5FileSystem::HandleMessage(const pp::Var& message) {
 int Html5FileSystem::Initialize(Arguments* arguments) {
   naclfs_->Log("Html5FileSystem: initializing file system...");
   filesystem_ = new pp::FileSystem(naclfs_->GetInstance(),
-                                   PP_FILESYSTEMTYPE_LOCALTEMPORARY);
+                                   naclfs_->filesystem_type());
   filesystem_->Open(1024 * 1024, callback_);
   naclfs_->Log("done\n");
   arguments->chaining = true;

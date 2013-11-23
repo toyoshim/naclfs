@@ -49,6 +49,8 @@ namespace naclfs {
 NaClFs* NaClFs::single_instance_ = NULL;
   bool NaClFs::trace_ = false;
 
+PP_FileSystemType NaClFs::filesystem_type_ = PP_FILESYSTEMTYPE_LOCALTEMPORARY;
+
 NaClFs::NaClFs(pp::Instance* instance)
     : filesystem_(new FileSystem(this)),
       core_(pp::Module::Get()->core()),
