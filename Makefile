@@ -129,6 +129,7 @@ _pnacl_install_message:
 
 _common_install:
 	@echo "--- installing 32-bit library and tool ---"
+	@install src/naclfs.h $(USR32_PATH)/include
 	@install -d $(USR32_PATH)/bin
 	@install -d $(USR32_PATH)/lib/naclfs
 	@install obj/$(LIBC_TYPE)-i686/libnaclfs.a $(USR32_PATH)/lib
@@ -139,6 +140,7 @@ _common_install:
 	@install bin/install-naclfs-config $(USR32_PATH)/bin/naclfs-config
 	@install html/naclfs.js $(USR32_PATH)/lib/naclfs
 	@echo "--- installing 64-bit library and tool ---"
+	@install src/naclfs.h $(USR64_PATH)/include
 	@install -d $(USR64_PATH)/bin
 	@install -d $(USR64_PATH)/lib/naclfs
 	@install obj/$(LIBC_TYPE)-x86_64/libnaclfs.a $(USR64_PATH)/lib
@@ -151,6 +153,7 @@ _common_install:
 
 _pnacl_install:
 	@echo "--- installing pnacl library and tool ---"
+	@install src/naclfs.h $(USRPNACL_PATH)/include
 	@install -d $(USRPNACL_PATH)/bin
 	@install -d $(USRPNACL_PATH)/lib/naclfs
 	@install obj/pnacl/libnaclfs.a $(USRPNACL_PATH)/lib

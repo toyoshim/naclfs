@@ -13,7 +13,8 @@ function _wrap() {
 }
 
 function cflags() {
-  /bin/echo -n "-I$INCBASE -pthread -Dmain=naclfs_main -Deaccess=access"
+  /bin/echo -n "-I$NACL_SDK_ROOT/include -I$INCBASE"
+  /bin/echo -n " -pthread -Dmain=naclfs_main -Deaccess=access"
   if [ $1 = "pnacl" ]; then
     /bin/echo -n " -Daccess=__wrap_access"
     /bin/echo -n " -Disatty=__wrap_isatty"
