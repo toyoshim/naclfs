@@ -135,6 +135,7 @@ _common_install:
 	@if [ -f obj/$(LIBC_TYPE)-i686/libnaclfs.so ]; then \
 	  install obj/$(LIBC_TYPE)-i686/libnaclfs.so $(USR32_PATH)/lib; \
 	fi
+	@install obj/$(LIBC_TYPE)-i686/naclfs_crt.o $(USR32_PATH)/lib
 	@install bin/install-naclfs-config $(USR32_PATH)/bin/naclfs-config
 	@install html/naclfs.js $(USR32_PATH)/lib/naclfs
 	@echo "--- installing 64-bit library and tool ---"
@@ -144,6 +145,7 @@ _common_install:
 	@if [ -f obj/$(LIBC_TYPE)-x86_64/libnaclfs.so ]; then \
 	  install obj/$(LIBC_TYPE)-x86_64/libnaclfs.so $(USR64_PATH)/lib; \
 	fi
+	@install obj/$(LIBC_TYPE)-x86_64/naclfs_crt.o $(USR64_PATH)/lib
 	@install bin/install-naclfs-config $(USR64_PATH)/bin/naclfs-config
 	@install html/naclfs.js $(USR64_PATH)/lib/naclfs
 
@@ -155,6 +157,7 @@ _pnacl_install:
 	@if [ -f obj/pnacl/libnaclfs.so ]; then \
 	  install obj/pnacl/libnaclfs.so $(USRPNACL_PATH)/lib; \
 	fi
+	@install obj/pnacl/naclfs_crt.o $(USRPNACL_PATH)/lib
 	@install bin/install-naclfs-config $(USRPNACL_PATH)/bin/naclfs-config
 	@install html/naclfs.js $(USRPNACL_PATH)/lib/naclfs
 
