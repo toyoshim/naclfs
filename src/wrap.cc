@@ -424,7 +424,7 @@ __attribute__((constructor)) static void wrap() {
 
 #else  // defined(__GLIBC__)
 // Use IRT structure overwriting for newlib.
-extern "C" struct nacl_irt_dev_filename __libnacl_irt_dev_filename;
+extern "C" struct nacl_irt_filename __libnacl_irt_dev_filename;
 extern "C" struct nacl_irt_fdio __libnacl_irt_fdio;
 __attribute__((constructor)) static void wrap() {
   __libnacl_irt_dev_filename.open = __wrap_open;

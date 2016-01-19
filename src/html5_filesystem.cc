@@ -467,7 +467,8 @@ int Html5FileSystem::MkDirCall(Arguments* arguments,
   }
 
   pp::FileRef file_ref(*filesystem_, path);
-  if (file_ref.MakeDirectory(callback_) != PP_OK_COMPLETIONPENDING) {
+  if (file_ref.MakeDirectory(PP_MAKEDIRECTORYFLAG_NONE, callback_) !=
+      PP_OK_COMPLETIONPENDING) {
     naclfs_->Log(
         "Html5FileSystem::MkDir doesn't return PP_OK_COMPLETIONPENDING\n");
     return -1;

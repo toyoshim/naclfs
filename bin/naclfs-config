@@ -35,7 +35,10 @@ function libs() {
   /bin/echo -n "-L$NACL_SDK_ROOT/lib/"
   /bin/echo -n "$1/Release" | sed -e 's/-/_/' | sed -e 's/i686/x86_32/'
   /bin/echo -n " -L$LIBPATH"
-  /bin/echo -n " -lnaclfs -lppapi -lppapi_cpp -lstdc++ -lpthread"
+  /bin/echo -n " -lnaclfs -lppapi -lppapi_cpp -lpthread"
+  if [ $1 != "pnacl" ]; then
+    /bin/echo -n " -lstdc++"
+  fi
 }
 
 function nmf() {
